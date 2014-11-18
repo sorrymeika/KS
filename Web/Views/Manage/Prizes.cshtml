@@ -1,0 +1,300 @@
+﻿@using SL.Data
+@using SL.Util
+@{
+    RequestUtil req = new RequestUtil();
+
+    if ("add" == Request.QueryString["action"])
+    {
+        var picture = req.File("pic", false, "缺少奖品图片");
+        string name = req.String("name", false, "缺少奖品名称");
+        string number = req.String("number", false, "缺少中奖几率");
+
+        if (req.HasError)
+        {
+            HtmlUtil.IFrameResult(new { success = false, msg = req.FirstError, errors = req.GetErrors() });
+            return;
+        }
+
+        string src = picture.Save();
+
+        SQL.Execute("insert into Prize (PrizeName,Picture,Deleted,Number) values (@p0,@p1,0,@p2)", name, src, number);
+
+
+        HtmlUtil.IFrameResult(new { success = true });
+        return;
+    }
+    else if ("modify" == Request.QueryString["action"])
+    {
+        var picture = req.File("pic");
+        int id = req.Int("id", false, "缺少奖品ID");
+        string name = req.String("name", false, "缺少奖品名称");
+        string number = req.String("number", false, "缺少中奖几率");
+        string callback = req.String("callback");
+
+        if (req.HasError)
+        {
+            HtmlUtil.IFrameResult(new { success = false, msg = req.FirstError, errors = req.GetErrors() });
+            return;
+        }
+
+        string set = "";
+        List<object> parameters = new List<object> { id, name, number };
+
+        if (!picture.IsEmpty)
+        {
+            string origSrc = SQL.QueryValue<string>("select Picture from Prize where PrizeID=@p0", id);
+
+            RequestFile.Delete(origSrc);
+            string src = picture.Save();
+
+            set = ",Picture=@p3";
+            parameters.Add(src);
+        }
+
+        SQL.Execute("update Prize set PrizeName=@p1,Number=@p2" + set + " where PrizeID=@p0", parameters.ToArray());
+
+        HtmlUtil.IFrameResult(new { success = true });
+        return;
+    }
+    else if ("delete" == Request.QueryString["action"])
+    {
+        int id = req.Int("id", false, "缺少奖品ID");
+        string callback = req.String("callback");
+
+        if (req.HasError)
+        {
+            HtmlUtil.IFrameResult(new { success = false, msg = req.FirstError, errors = req.GetErrors() });
+            return;
+        }
+
+        string origSrc = SQL.QueryValue<string>("select Picture from Prize where PrizeID=@p0", id);
+
+        RequestFile.Delete(origSrc);
+
+        SQL.Execute("update Prize set Deleted=1 where PrizeID=@p0", id);
+
+        HtmlUtil.IFrameResult(new { success = true });
+        return;
+    }
+    else if ("get" == Request.QueryString["action"])
+    {
+        var data = SQL.Query("select PrizeID,PrizeName,Picture,Number from Prize where Deleted=0");
+
+        if (data != null)
+        {
+            data.All(a =>
+            {
+                a["Picture"] = RequestFile.FullUrl(a["Picture"]);
+                return true;
+            });
+        }
+
+        HtmlUtil.IFrameResult(new { success = true, data = data });
+        return;
+    }
+    ViewBag.Title = "Settings";
+    Layout = "~/Views/Shared/_ManageLayout.cshtml";
+}
+<h1>奖品管理</h1>
+<div id="toolbar" class="toolbar"></div>
+<div id="grid"></div>
+<script>
+    seajs.use(['jquery','lib/buttons','lib/popup','lib/grid','lib/global.css'],function ($,Buttons,popup) {
+
+        //添加奖品
+        var dialogAddForm=new popup.Form({
+            url: '?action=add',
+            title: '添加奖品',
+            width: 520,
+            controls: {
+                name: {
+                    label: '奖品名称',
+                    type: 'text',
+                    validation: {
+                        emptyAble: false,
+                        emptyText: '请填写奖品名称'
+                    }
+                },
+                number: {
+                    label: '第几位用户获奖',
+                    type: 'text',
+                    validation: {
+                        msg: "设置第几位用户获得该奖，如：“2,100”。第2和第100个用户将获得该奖品",
+                        emptyAble: false,
+                        emptyText: '请填写奖品名称',
+                        regex: /^\d+(,\d+)*$/,
+                        regexText: '格式错误'
+                    }
+                },
+                pic: {
+                    label: '奖品图片',
+                    type: 'file',
+                    validation: {
+                        emptyAble: false,
+                        emptyText: '请上传奖品图片'
+                    }
+                }
+            },
+            buttons: [{
+                text: '添加',
+                click: function () {
+                    dialogAddForm.submit({
+                        beforeSend: function () {
+                        },
+                        success: function (res) {
+                            if(res.success) {
+                                dialogAddForm.hide().reset();
+                                grid.search();
+                            } else
+                                alert(res.msg);
+                        },
+                        error: function () {
+                        }
+                    });
+                }
+            },{
+                text: '取消',
+                click: function () {
+                    dialogAddForm.hide();
+                }
+            }]
+        });
+
+        //修改奖品
+        var dialogModify=new popup.Form({
+            url: '?action=modify',
+            title: '修改奖品',
+            width: 520,
+            controls: {
+                id: {
+                    type: 'hidden'
+                },
+                name: {
+                    label: '奖品名称',
+                    type: 'text',
+                    validation: {
+                        emptyAble: false,
+                        emptyText: '请填写奖品名称'
+                    }
+                },
+                number: {
+                    label: '第几位用户获奖',
+                    type: 'text',
+                    validation: {
+                        msg: "设置第几位用户获得该奖，如：“2,100”。第2和第100个用户将获得该奖品",
+                        emptyAble: false,
+                        emptyText: '请填写奖品名称',
+                        regex: /^\d+(,\d+)*$/,
+                        regexText: '格式错误'
+                    }
+                },
+                pic: {
+                    label: '奖品图片',
+                    type: 'file'
+                }
+            },
+            buttons: [{
+                text: '修改',
+                click: function () {
+                    dialogModify.submit({
+                        beforeSend: function () {
+                        },
+                        success: function (res) {
+                            if(res.success) {
+                                dialogModify.hide().reset();
+                                grid.search();
+                            } else
+                                alert(res.msg);
+                        },
+                        error: function () {
+                        }
+                    });
+                }
+            },{
+                text: '取消',
+                click: function () {
+                    dialogModify.hide();
+                }
+            }]
+        });
+
+        var buttons=new Buttons("#toolbar",[{
+            text: "添加奖品",
+            ico: 'add',
+            click: function () {
+                dialogAddForm.show();
+            }
+        },{
+            text: "修改",
+            ico: "modify",
+            disabled: true,
+            click: function () {
+                var data=grid.selectedRow().data;
+                dialogModify.control("id").val(data.PrizeID);
+                dialogModify.control("name").val(data.PrizeName);
+                dialogModify.control("number").val(data.Number);
+                dialogModify.show();
+            }
+        },{
+            text: "删除",
+            ico: "delete",
+            disabled: true,
+            click: function () {
+                if(!window.confirm('确认删除？')) return;
+                var data=grid.selectedRow().data;
+
+                $.ajax({
+                    url: '?action=delete',
+                    type: 'post',
+                    data: {
+                        id: data.PrizeID
+                    },
+                    dataType: 'json',
+                    success: function (res) {
+                        if(res.success) {
+                            alert('删除成功！');
+                            grid.search();
+                        } else
+                            alert(res.msg);
+                    }
+                });
+            }
+        }]);
+
+
+        var grid=$('#grid').grid({
+            search: {
+                beforeSend: function () {
+                    buttons.items([1,2]).disable();
+                },
+                url: '?action=get'
+            },
+            rowHeight: 100,
+            onRowSelect: function (row,data) {
+                buttons.items([1,2]).enable();
+            },
+            columns: [{
+                text: '编号',
+                bind: 'PrizeID',
+                width: 6
+            },{
+                text: '奖品名称',
+                bind: 'PrizeName',
+                width: 10
+            },{
+                text: '第几位用户获奖',
+                bind: 'Number',
+                width: 6
+            },{
+                text: "图片",
+                bind: 'Picture',
+                width: 6,
+                align: 'center',
+                render: function (cell,data) {
+                    cell.append('<a href="'+data.Picture+'" target="_blank"><img src="'+data.Picture+'" height="100%" /></a>');
+                }
+            }]
+        }).search();
+
+    });
+</script>

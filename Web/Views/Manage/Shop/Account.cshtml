@@ -1,0 +1,381 @@
+﻿@using SL.Util
+@using SL.Data
+@{
+    RequestUtil req = new RequestUtil();
+
+    if (Request["action"] == "search")
+    {
+        int page = req.Int("Page", defaultValue: 1);
+        int pageSize = req.Int("PageSize", defaultValue: 10);
+        string keywords = req.String("Keywords");
+        string sort = req.String("Sort");
+        bool isAsc = req.Bool("Asc", defaultValue: false);
+        string role = req.String("role");
+        string shopId = req.String("shopId");
+
+        if (req.HasError)
+        {
+            Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+            return;
+        }
+
+        string where = "Deleted=0";
+        List<object> parameters = new List<object>();
+        if (!string.IsNullOrEmpty(keywords))
+        {
+            where += " and (AccountName like '%'+@p" + parameters.Count + "+'%' or Name like '%'+@p" + parameters.Count + "+'%')";
+            parameters.Add(keywords);
+        }
+        if (!string.IsNullOrEmpty(role))
+        {
+            where += " and Role=@p" + parameters.Count;
+            parameters.Add(req.Int("role"));
+        }
+        if (!string.IsNullOrEmpty(shopId))
+        {
+            where += " and ShopID=@p" + parameters.Count;
+            parameters.Add(req.Int("shopId"));
+        }
+
+        IDictionary<string, bool> sortDic = new Dictionary<string, bool>{
+            { string.IsNullOrEmpty(sort) ? "AccountID" : sort, isAsc }
+        };
+
+        int total;
+        var data = SQL.QueryPage("AccountID",
+            "AccountID,AccountName,ShopID,Name,Role,Password",
+            "Account",
+            where, page, pageSize, parameters, out total, sortDic);
+
+        Json.Write(new { success = true, data = data, total = total }, Output);
+        return;
+    }
+    else if (Request["action"] == "add")
+    {
+        string accountName = req.String("accountName", false, "请填写账号");
+        string password = req.Password("password", "请填写密码");
+        string name = req.String("name", false, "请填写姓名");
+        int role = req.Int("role", false, "请选择账号类型");
+        int shopId = req.Int("shopId");
+
+        if (req.HasError)
+        {
+            Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+            return;
+        }
+
+        if (SQL.Exists("select 1 from Account where AccountName=@p0 and Role=@p1", accountName, role))
+        {
+            Json.Write(new { success = false, msg = "账号已存在" }, Output);
+            return;
+        }
+
+        SQL.Execute("insert into Account (AccountName,Password,Name,Role,ShopID,Deleted) values (@p0,@p1,@p2,@p3,@p4,0)", accountName, password, name, role, shopId);
+
+        Json.Write(new { success = true }, Output);
+        return;
+    }
+    else if (Request["action"] == "modify")
+    {
+        int accountId = req.Int("AccountID", false, "请传入账号编号");
+        int shopId = req.Int("ShopID", false, "请传入门店编号");
+        string name = req.String("Name", false, "请传入名称");
+        string password = req.String("Password");
+
+        if (req.HasError)
+        {
+            Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+            return;
+        }
+
+        SQL.Execute("update Account set Name=@p1,ShopID=@p2 where AccountID=@p0", accountId, name, shopId);
+
+        if (!string.IsNullOrEmpty(password))
+        {
+            SQL.Execute("update Account set Password=@p1 where AccountID=@p0", accountId, req.Password("Password"));
+        }
+
+        Json.Write(new { success = true }, Output);
+        return;
+    }
+    else if (Request["action"] == "delete")
+    {
+        int accountId = req.Int("AccountID", false, "请传入账号编号");
+
+        if (req.HasError)
+        {
+            Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+            return;
+        }
+
+        SQL.Execute("update Account set Deleted=1 where AccountID=@p0", accountId);
+
+        Json.Write(new { success = true }, Output);
+        return;
+    }
+
+    Layout = "~/Views/Shared/_ManageLayout.cshtml";
+
+    var shops = SQL.Query("select ShopID as value,ShopName as text from Shop where Deleted=0");
+    if (shops != null)
+    {
+        shops.Insert(0, new
+        {
+            value = "",
+            text = "请选择"
+        });
+    }
+}
+<h1>账号管理</h1>
+<div id="toolbar" class="toolbar"></div>
+<div id="grid"></div>
+<script>
+var shops=@(new MvcHtmlString(Json.Encode(shops)));
+</script>
+<script>
+    seajs.use(['jquery','lib/util','lib/buttons','lib/popup','lib/grid','lib/global.css'],function ($,util,Buttons,popup) {
+
+        //工具栏
+        var buttons=new Buttons('#toolbar',[{
+            ico: "add",
+            value: "添加",
+            click: function () {
+                popupAdd.control('role').val()==1?
+                    popupAdd.control('shopId').show():
+                    popupAdd.control('shopId').hide();
+
+                popupAdd.show();
+            }
+        },{
+            ico: "modify",
+            value: "修改",
+            disabled: true,
+            click: function () {
+                var data=grid.selectedRow().data;
+
+                popupModify.control('name').val(data.Name);
+                popupModify.control('shopId').val(data.ShopID);
+                (data.Role==0)
+                    ?popupModify.control('shopId').hide()
+                    :popupModify.control('shopId').show();
+
+                popupModify.control('accountId').val(data.AccountID);
+                popupModify.show();
+            }
+        },{
+            ico: "delete",
+            value: "停用账号",
+            disabled: true,
+            click: function () {
+                var data=grid.selectedRow().data;
+                if(window.confirm('确认停用账号？'))
+                    $.post('?action=delete',{
+                        AccountID: data.AccountID
+                    },function (res) {
+                        if(res.success) {
+                            grid.searchCurrentPage();
+                        } else
+                            alert(res.msg);
+                    },'json');
+            }
+        }]);
+
+        var popupAdd=new popup.Form({
+            title: '添加账号',
+            width: 450,
+            controls: {
+                accountName: {
+                    label: '账号',
+                    type: 'text',
+                    width: 260,
+                    validation: {
+                        emptyAble: false,
+                        emptyText: '请填写账号'
+                    }
+                },
+                password: {
+                    label: '密码',
+                    type: 'password',
+                    width: 260,
+                    validation: {
+                        emptyAble: false,
+                        emptyText: '请填写密码'
+                    }
+                },
+                name: {
+                    label: '姓名',
+                    type: 'text',
+                    width: 260,
+                    validation: {
+                        emptyAble: false,
+                        emptyText: '请填写姓名'
+                    }
+                },
+                role: {
+                    label: '账号类型',
+                    type: 'select',
+                    emptyAble: false,
+                    options: [{
+                        value: 1,
+                        text: '业务员'
+                    },{
+                        value: 0,
+                        text: '商户'
+                    }],
+                    events: {
+                        'change': function (e) {
+                            $(e.target).val()==1?
+                                popupAdd.control('shopId').show():
+                                popupAdd.control('shopId').hide();
+                        }
+                    }
+                },
+                shopId: {
+                    label: '所属门店',
+                    type: 'select',
+                    emptyAble: false,
+                    options: shops
+                }
+            },
+            buttons: [{
+                value: '添加',
+                click: function () {
+                    popupAdd.submit({
+                        url: '?action=add',
+                        success: function (res) {
+                            if(res.success) {
+                                popupAdd.hide().reset();
+                                grid.searchCurrentPage();
+                            } else {
+                                alert(res.msg);
+                            }
+                        }
+                    });
+                }
+            },{
+                value: '取消',
+                click: function () {
+                    popupAdd.hide().reset();
+                }
+            }]
+        });
+
+        var popupModify=new popup.Form({
+            title: '修改账号',
+            width: 450,
+            controls: {
+                accountId: {
+                    type: 'hidden'
+                },
+                name: {
+                    label: '姓名',
+                    type: 'text',
+                    width: 260,
+                    validation: {
+                        emptyAble: false,
+                        emptyText: '请填写姓名'
+                    }
+                },
+                shopId: {
+                    label: '所属门店',
+                    type: 'select',
+                    emptyAble: false,
+                    options: shops
+                },
+                password: {
+                    label: '密码(选填)',
+                    type: 'password',
+                    width: 260
+                }
+            },
+            buttons: [{
+                value: '修改',
+                click: function () {
+                    popupModify.submit({
+                        url: '?action=modify',
+                        success: function (res) {
+                            if(res.success) {
+                                popupModify.hide().reset();
+                                grid.searchCurrentPage();
+                            } else {
+                                alert(res.msg);
+                            }
+                        }
+                    });
+                }
+            },{
+                value: '取消',
+                click: function () {
+                    popupModify.hide().reset();
+                }
+            }]
+        });
+
+        //列表
+        var grid=$('#grid').grid({
+            search: {
+                url: "?action=search",
+                beforeSend: function () {
+                    buttons.items([1,2]).disable();
+                },
+                data: {
+                    role: {
+                        label: '账号类型',
+                        type: 'select',
+                        options: [{
+                            value: '',
+                            text: '请选择'
+                        },{
+                            value: 1,
+                            text: '业务员'
+                        },{
+                            value: 0,
+                            text: '商户'
+                        }]
+                    },
+                    shopId: {
+                        label: '所属店铺',
+                        type: 'select',
+                        options: shops
+                    },
+                    keywords: {
+                        label: "关键字：",
+                        type: 'text'
+                    }
+                }
+            },
+            onRowSelect: function () {
+                buttons.items([1,2]).enable();
+            },
+            pageEnabled: true,
+            columns: [{
+                text: "编号",
+                bind: "AccountID",
+                width: 3
+            },{
+                text: "账号",
+                bind: "AccountName",
+                width: 10
+            },{
+                text: "姓名",
+                bind: "Name",
+                width: 6
+            },{
+                text: "类型",
+                bind: "Role",
+                width: 6,
+                render: function (cell,data) {
+                    cell.append('<i class="gridCellItem">'+(data.Role==0?'商户':"业务员")+'</i>');
+                }
+            },{
+                text: "查看",
+                bind: "Role",
+                width: 6,
+                render: function (cell,data) {
+                    cell.append('<i class="gridCellItem"><a href="Transfer?accountid='+data.AccountID+'" style="color:#c00">[下属过户单]</a></i>');
+                }
+            }]
+        }).search();
+
+    });
+</script>

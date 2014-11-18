@@ -1,0 +1,81 @@
+﻿@using SL.Util
+@{
+    if (Request["action"] == "modify")
+    {
+        var req = new RequestUtil();
+        string password = req.Password("password", "缺少旧密码");
+        string newpassword = req.Password("newpassword", "缺少新密码");
+
+        if (req.HasError)
+        {
+            Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+            return;
+        }
+
+        bool exists = SL.Data.SQL.QueryValue<bool>("if exists (select 1 from Admin where Password=@p0) select 1 else select 0", password);
+        if (!exists)
+        {
+            Json.Write(new { success = false, msg = "旧密码不正确" }, Output);
+            return;
+        }
+
+        SL.Data.SQL.Execute("update Admin set Password=@p0 where AdminName='admin'", newpassword);
+
+        Json.Write(new { success = true }, Output);
+        return;
+    }
+
+    Layout = "~/Views/Shared/_ManageLayout.cshtml";
+}
+<div id="form"></div>
+<script>
+    seajs.use(['jquery','lib/form','lib/global.css'],function ($) {
+        var form=$('#form').form({
+            title: "修改管理员密码",
+            url: 'modifypwd?action=modify',
+            controls: {
+                password: {
+                    label: '旧密码',
+                    type: 'password',
+                    validation: {
+                        emptyAble: false,
+                        emptyText: '请填写旧密码'
+                    }
+                },
+                newpassword: {
+                    label: '新密码',
+                    type: 'password',
+                    validation: {
+                        emptyAble: false,
+                        emptyText: '请填写新密码'
+                    }
+                },
+                newpassword1: {
+                    label: '重复密码',
+                    type: 'password',
+                    validation: {
+                        emptyAble: false,
+                        emptyText: '请重复密码',
+                        compare: 'newpassword',
+                        compareText: '两次密码不一致'
+                    }
+                }
+            },
+            buttons: [{
+                value: '修改',
+                click: function () {
+                    form.submit(function (res) {
+                        if(res.success)
+                            alert('修改成功！');
+                        else
+                            alert(res.msg);
+
+                        form.reset();
+                    });
+                }
+            }]
+        });
+
+
+    });
+</script>

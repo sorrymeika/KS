@@ -1,0 +1,71 @@
+﻿@using SL.Util
+@using SL.Data
+@{
+    
+    RequestUtil req = new RequestUtil();
+    string email = req.String("email", false, "请填写邮箱", @"^[-_a-zA-Z0-9\.]+@([-_a-zA-Z0-9]+\.)+[a-zA-Z0-9]{2,3}$", "邮箱格式不正确");
+    string name = req.String("name", false, "请填写姓名");
+    int noteId = req.Int("noteId", false, "请传入秘密编号");
+    string mobile = req.String("mobile", false, "请填写手机", @"^1\d{10}$", "请填写正确的手机号");
+
+    if (req.HasError)
+    {
+        Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+        return;
+    }
+
+    if (noteId != 0)
+    {
+        if (SQL.Exists("select 1 from Note where NoteID=@p0 and (UserID<>0 and UserID is not null)", noteId))
+        {
+            Json.Write(new { success = false, msg = "您已参加过游戏" }, Output);
+            return;
+        }
+    }
+
+    var user = SQL.QuerySingle("select UserID from Users where Email=@p0", email);
+    int userid;
+
+    if (user != null)
+    {
+        Json.Write(new { success = false, msg = "该邮箱已参加过游戏" }, Output);
+        return;
+    }
+    else
+    {
+        SQL.Execute("insert into Users (Email,Name,CreationTime,Mobile) values (@p0,@p1,@p2,@p3)", out userid, email, name, DateTime.Now, mobile);
+        SQL.Execute("update Note set UserID=@p1 where NoteID=@p0", noteId, userid);
+    }
+
+    string strNumber = SL.Web.Service.SettingService.Get("PrizePersonNumber");
+    int number = string.IsNullOrEmpty(strNumber) ? 1 : (int.Parse(strNumber) + 1);
+    SL.Web.Service.SettingService.Set("PrizePersonNumber", number.ToString());
+
+    var data = SQL.Query("select PrizeID,PrizeName,Picture,Number from Prize where Deleted!=1");
+    if (data == null)
+    {
+        //Output.Write(js.Serialize(new { success = false, msg = "未发布奖品" }));
+    }
+    else
+    {
+        foreach (var item in data)
+        {
+            string prizeNumber = item["Number"].ToString();
+            if (!string.IsNullOrEmpty(prizeNumber))
+            {
+                if (prizeNumber.Split(',').Select(a => int.Parse(a)).Contains(number))
+                {
+                    SQL.Execute("update Users set PrizeID=@p1 where UserID=@p0", userid, (int)item["PrizeID"]);
+                    item["Picture"] = RequestFile.FullUrl(item["Picture"]);
+
+                    String result = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(userid + "|" + item.PrizeID + "|" + DateTime.Now.ToString("yyMMdd")));
+
+                    Json.Write(new { success = true, prize = item, result = result }, Output);
+                    return;
+                }
+            }
+        }
+    }
+    Json.Write(new { success = true, prize = false }, Output);
+    return;
+}

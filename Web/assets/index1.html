@@ -1,0 +1,50 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <meta charset="utf-8" />
+    <title>猜猜我的时尚秘密</title>
+    <link href="anim.css" rel="stylesheet" type="text/css" />
+    <link href="style.css" rel="stylesheet" type="text/css" />
+    <script src="js/seajs/sea.js"></script>
+</head>
+<body>
+    <script type="text/javascript">
+        seajs.config({
+            alias: {
+                "$": "zepto"
+            }
+        });
+
+        seajs.use(['$','sl/sl','app'],function ($,sl,_app) {
+            var app=new sl.Application();
+
+            app.mapRoute({
+                '': 'start1',
+                'start.html': 'start',
+                'write/{id:\\d+}.html': 'write',
+                'share/{data:.+}': 'share',
+                'prize/{data:.+}': 'prize',
+                'prize1/{data:.+}': 'prize1',
+                'sorry.html': 'sorry',
+                'sorry1.html': 'sorry1',
+                'wrong.html': 'wrong',
+                'right.html': 'right',
+                'menu/{name:\\w+}.html': 'menu',
+                'add.html': 'add',
+                'seller.html': 'seller',
+                'shop.html': 'shop',
+                'send/{shopid:\\d+}/{id:\\d+}.html': 'send',
+                'login.html': 'login',
+                'search.html': 'search',
+                'photo.html': 'photo',
+                'modify/{type:\\d+}/{id:\\d+}.html': 'modify',
+                'news/{id:\\d+}.html': 'news'
+            });
+
+            app.start();
+
+        });
+    </script>
+</body>
+</html>

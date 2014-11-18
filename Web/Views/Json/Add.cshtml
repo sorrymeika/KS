@@ -1,0 +1,21 @@
+﻿@using SL.Util
+@{
+    RequestUtil req = new RequestUtil();
+
+    int closeId = req.Int("closeId", false, "请选择喜爱的搭配");
+    string content = HttpUtility.UrlDecode(req.String("content", false, "请填写Content"));
+
+    if (req.HasError)
+    {
+        Json.Write(new { success = false, returnCode = "0000", msg = req.FirstError, errors = req.GetErrors() }, Output);
+        return;
+    }
+
+    int noteId;
+    SL.Data.SQL.Execute("insert into [Note] (CloseID,NoteText) values (@p0,@p1)", out noteId, closeId, content);
+
+    String result = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(noteId + "|" + closeId + "|" + DateTime.Now.ToString("yyMMdd")));
+
+    Json.Write(new { success = true, result = result }, Output);
+    return;
+}

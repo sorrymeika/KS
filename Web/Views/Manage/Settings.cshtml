@@ -1,0 +1,57 @@
+﻿@using SL.Data
+@using SL.Util
+@using SL.Web.Service
+@{
+    if ("set" == Request.QueryString["action"])
+    {
+        RequestUtil req = new RequestUtil();
+
+        for (int i = 0; i < Request.Form.Count; i++)
+        {
+            string key = Request.Form.GetKey(i);
+            string value = Request.Form[key];
+
+            SettingService.Set(key, value);
+        }
+
+        Json.Write(new { success = true }, Output);
+        return;
+    }
+    ViewBag.Title = "Settings";
+    Layout = "~/Views/Shared/_ManageLayout.cshtml";
+}
+<h1>游戏设置</h1>
+<div id="form" class="form"></div>
+<script>
+	seajs.use(['jquery','lib/form','lib/global.css'],function ($) {
+		var form=$('#form').form({
+			url: '?action=set',
+			controls: {
+				MinScore: {
+					label: "允许抽奖的最低分数：",
+					className: 'text_normal',
+					value: "@SettingService.Get("MinScore")",
+					validation: {
+						emptyAble: false,
+						emptyText: '请输入最低分数',
+						regex: /^\d+$/,
+						regexText: '必须为数字'
+					}
+				}
+			},
+			buttons: [{
+				text: "确定",
+				handle: function () {
+					form.submit({
+						success: function (res) {
+							if(res.success) {
+								alert('设置成功！');
+							} else
+								alert(res.msg)
+						}
+					});
+				}
+			}]
+		});
+	});
+</script>

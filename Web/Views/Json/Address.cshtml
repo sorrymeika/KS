@@ -1,0 +1,38 @@
+﻿@using SL.Util
+@using SL.Data
+@{
+    
+    RequestUtil req = new RequestUtil();
+    int userid = req.Int("userid", false, "请传入用户编号");
+    int prizeid = req.Int("prizeid");
+    string receiver = req.String("receiver", false, "请填写收件人");
+    string zip = req.String("zip", false, "请填写邮编", @"\d{6}", "请填写正确的邮编");
+    string phone = req.String("phone", false, "请填写手机");
+    string address = req.String("address", false, "请填写地址");
+
+    if (req.HasError)
+    {
+        Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+        return;
+    }
+
+    var user = SQL.QuerySingle("select PrizeID from Users where UserID=@p0", userid);
+
+    if (user == null || user.PrizeID != prizeid)
+    {
+        Json.Write(new { success = false, msg = "您还未参与该活动" }, Output);
+        return;
+    }
+    else if (SQL.Exists("select 1 from Address where UserID=@p0", userid))
+    {
+        Json.Write(new { success = false, msg = "您已填写过收货信息" }, Output);
+        return;
+    }
+    else
+    {
+        SQL.Execute("insert into Address (PrizeID,UserID,Receiver,Address,Phone,Zip,CreationTime) values (@p0,@p1,@p2,@p3,@p4,@p5,@p6)", prizeid, userid, receiver, address, phone, zip, DateTime.Now);
+
+        Json.Write(new { success = true }, Output);
+        return;
+    }
+}

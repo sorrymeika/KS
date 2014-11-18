@@ -1,0 +1,70 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>enjoy your holiday</title>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <meta charset="utf-8" />
+    <link href="anim.css" rel="stylesheet" type="text/css" />
+    <link href="style.css" rel="stylesheet" type="text/css" />
+    <script src="js/seajs/sea.js"></script>
+</head>
+<body>
+    <script type="text/javascript">
+        seajs.config({
+            alias: {
+                "$": "zepto"
+            }
+        });
+
+        seajs.use(['$','sl/sl','app'],function ($,sl,_app) {
+            var m=location.hash.match("/share/(.+)");
+            if(m&&m[1]) {
+                location.href="index1.html";
+                return;
+            }
+
+            var app=new sl.Application();
+
+            app.mapRoute({
+                '': 'index',
+                'start.html': 'start',
+                'write/{id:\\d+}.html': 'write',
+                'share/{data:.+}': 'share',
+                'prize/{data:.+}': 'prize',
+                'sorry.html': 'sorry',
+                'menu/{name:\\w+}.html': 'menu',
+                'add.html': 'add',
+                'seller.html': 'seller',
+                'shop.html': 'shop',
+                'send/{shopid:\\d+}/{id:\\d+}.html': 'send',
+                'login.html': 'login',
+                'search.html': 'search',
+                'photo.html': 'photo',
+                'modify/{type:\\d+}/{id:\\d+}.html': 'modify',
+                'news/{id:\\d+}.html': 'news'
+            });
+
+            app.start();
+
+        });
+    </script>
+    <script>
+        document.addEventListener('WeixinJSBridgeReady',function onBridgeReady() {
+
+            // 分享到朋友圈
+            WeixinJSBridge.on('menu:share:timeline',function (argv) {
+                WeixinJSBridge.invoke('shareTimeline',{
+                    "img_url": 'http://222.73.41.2:8085/assets/images/bottom.png',
+                    "img_width": "160",
+                    "img_height": "160",
+                    "link": location.href,
+                    "desc": "enjoy your holiday",
+                    "title": "enjoy your holiday"
+                },function (res) { });
+            });
+
+        },false)
+    </script>
+    </script>
+</body>
+</html>

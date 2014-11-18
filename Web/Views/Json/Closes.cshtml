@@ -1,0 +1,21 @@
+﻿@using SL.Util
+@using SL.Data
+@{
+    RequestUtil req = new RequestUtil();
+
+    var data = SQL.Query("select CloseID,Cover,Cover1,CloseID,CloseName,Picture,Url from Closes");
+
+    if (data != null)
+    {
+        data.All(a =>
+        {
+            a["Picture"] = RequestFile.FullUrl(a["Picture"]);
+            a["Cover"] = RequestFile.FullUrl(a["Cover"]);
+            a["Cover1"] = RequestFile.FullUrl(a["Cover1"]);
+            return true;
+        });
+    }
+
+    Json.Write(new { success = true, data = data }, Output);
+    return;
+}

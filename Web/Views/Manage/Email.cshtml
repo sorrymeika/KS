@@ -1,0 +1,146 @@
+﻿@using SL.Data
+@using SL.Util
+@using SL.Web.Service
+@{
+    RequestUtil req = new RequestUtil();
+
+    if ("get" == Request.QueryString["action"])
+    {
+        Layout = null;
+
+        int page = req.Int("page", defaultValue: 1);
+        int pageSize = req.Int("pageSize", defaultValue: 10);
+
+        string dateFrom = req.String("dateFrom");
+        string dateTo = req.String("dateTo");
+        string keywords = req.String("keywords");
+
+        string where = "1=1";
+        List<object> parameters = new List<object>();
+        Dictionary<string, bool> sortDict = new Dictionary<string, bool>{
+            {"a.CreationTime",false}
+        };
+
+        if (!string.IsNullOrEmpty(dateFrom) && !string.IsNullOrEmpty(dateTo))
+        {
+            where += " and (a.CreationTime between @p" + parameters.Count + " and @p" + (parameters.Count + 1) + ")";
+            parameters.Add(DateTime.Parse(dateFrom + " 00:00:00"));
+            parameters.Add(DateTime.Parse(dateTo + " 23:59:59"));
+        }
+
+        if (!string.IsNullOrEmpty(keywords))
+        {
+            where += " and (a.Name like '%'+ @p" + parameters.Count + "+'%' or a.Email like '%'+@p" + parameters.Count + "+'%')";
+            parameters.Add(keywords);
+        }
+
+        int total;
+        var data = SQL.QueryPage(
+            new[] { "UserID" },
+            "UserID,a.CreationTime,a.Name,a.Email",
+            "Users a",
+            where,
+            page,
+            pageSize,
+            parameters.ToArray(),
+            out total,
+            sortDict);
+
+        Json.Write(new { success = true, data = data, total = total }, Output);
+        return;
+    }
+    else if ("export" == Request.QueryString["action"])
+    {
+        Layout = null;
+
+        string dateFrom = req.String("dateFrom");
+        string dateTo = req.String("dateTo");
+        string keywords = req.String("keywords");
+
+        string where = "1=1";
+        List<object> parameters = new List<object>();
+        Dictionary<string, bool> sortDict = new Dictionary<string, bool>{
+            {"a.CreationTime",false}
+        };
+
+        if (!string.IsNullOrEmpty(dateFrom) && !string.IsNullOrEmpty(dateTo))
+        {
+            where += " and (a.CreationTime between @p" + parameters.Count + " and @p" + (parameters.Count + 1) + ")";
+            parameters.Add(DateTime.Parse(dateFrom + " 00:00:00"));
+            parameters.Add(DateTime.Parse(dateTo + " 23:59:59"));
+        }
+
+        if (!string.IsNullOrEmpty(keywords))
+        {
+            where += " and (a.Name like '%'+ @p" + parameters.Count + "+'%' or a.Email like '%'+@p" + parameters.Count + "+'%')";
+            parameters.Add(keywords);
+        }
+
+        var data = SQL.Query("select Name as 用户姓名,Email as 用户邮箱,CreationTime as 注册时间 from Users where " + where + " order by UserID desc", parameters.ToArray());
+
+        ExcelUtil.doExport(data, Server.MapPath("~/upload/user.xls"));
+
+        Response.Redirect(Url.Content("~/upload/user.xls"));
+        return;
+    }
+    ViewBag.Title = "Settings";
+    Layout = "~/Views/Shared/_ManageLayout.cshtml";
+}
+<h1>用户管理</h1>
+<div id="toolbar" class="toolbar"></div>
+<div id="grid"></div>
+<script>
+    seajs.use(['jquery','lib/buttons','lib/popup','lib/grid','lib/global.css'],function ($,Buttons,popup) {
+
+        var buttons=new Buttons("#toolbar",[{
+            text: "导出搜索结果",
+            ico: "view",
+            click: function () {
+                window.open("?action=export&dateFrom="+grid.searchInput('dateFrom').val()
+					+"&dateTo="+grid.searchInput('dateTo').val()+"&keywords="+grid.searchInput('keywords').val());
+            }
+        }]);
+
+        var grid=$('#grid').grid({
+            pageEnabled: true,
+            search: {
+                beforeSend: function () {
+                },
+                url: '?action=get',
+                data: {
+                    dateFrom: {
+                        label: '注册时间 从',
+                        type: 'calendar'
+                    },
+                    dateTo: {
+                        label: '到',
+                        type: 'calendar'
+                    },
+                    keywords: {
+                        label: '关键字'
+                    }
+                }
+            },
+            onRowSelect: function (row,data) {
+            },
+            columns: [{
+                text: '编号',
+                bind: 'UserID',
+                width: 6
+            },{
+                text: "姓名",
+                bind: 'Name',
+                width: 6
+            },{
+                text: "邮箱",
+                bind: 'Email',
+                width: 6
+            },{
+                text: "注册日期",
+                bind: 'CreationTime',
+                width: 6
+            }]
+        }).search();
+
+    });
+</script>

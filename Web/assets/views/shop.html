@@ -1,0 +1,10 @@
+<header><em class="ico-back js_back" hl>代理门店</em> <em class="ico-save js_save" hl></em></header>
+<section class="main js_main">
+    <ul class="shop_list js_list">
+    </ul>
+</section>
+<script id="list" type="text/template">
+    {%each(i,item) data%}
+        <li{%html i!=0?"":" class='check'"%} data-id="${item.ShopID}">${item.ShopName}</li>
+    {%/each%}
+</script>

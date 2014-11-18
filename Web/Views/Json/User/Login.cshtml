@@ -1,0 +1,52 @@
+﻿@using SL.Util
+@{
+    var req = new RequestUtil();
+    string account = req.String("account", false, "请填写账号");
+    string password = req.Password("password", "请填写密码");
+    int role = req.Int("role");
+
+    if (req.HasError)
+    {
+        Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+        return;
+    }
+
+    var userinfo = SL.Data.SQL.QuerySingle("select AccountID,AccountName,ShopID,Name,Role,Password,Deleted from Account where AccountName=@p0", account);
+    if (null == userinfo)
+    {
+        Json.Write(new { success = false, msg = "账号不存在", account = account }, Output);
+        return;
+    }
+
+    if (true == userinfo.Deleted)
+    {
+        Json.Write(new { success = false, msg = "账号已禁用" }, Output);
+        return;
+    }
+
+    if (password != Md5.MD5(userinfo.Password))
+    {
+        Json.Write(new { success = false, msg = "密码错误" }, Output);
+        return;
+    }
+
+    string auth = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(Md5.MD5(account + DateTime.Now.ToString("yyyyMMddHHmmss_ffff") + password) + "|" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")));
+
+    SL.Data.SQL.Execute("update Account set Auth=@p0 where AccountID=@p1", auth, userinfo.AccountID);
+    SL.Web.Service.UserService.SetAuth(userinfo.AccountName, auth);
+
+    Json.Write(new
+    {
+        success = true,
+        auth = auth,
+        userinfo = new
+        {
+            AccountID = userinfo.AccountID,
+            AccountName = userinfo.AccountName,
+            ShopID = userinfo.ShopID,
+            Name = userinfo.Name,
+            Role = userinfo.Role
+        }
+    }, Output);
+    return;
+}

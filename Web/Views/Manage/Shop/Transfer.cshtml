@@ -1,0 +1,291 @@
+﻿@using SL.Util
+@using SL.Data
+@{
+    RequestUtil req = new RequestUtil();
+
+    if (Request["action"] == "search")
+    {
+        Layout = null;
+        int page = req.Int("page");
+        int pageSize = req.Int("pageSize", defaultValue: 10);
+        int type = req.Int("type");
+        string shopId = req.String("shopId");
+        string accountId = req.String("accountId");
+        DateTime dtFrom = req.DateTime("dtFrom");
+        DateTime dtTo = req.DateTime("dtTo");
+
+        string where = "b.Deleted=0";
+        IList<object> parameters = new List<object>();
+        int total;
+
+        if (type == 1)
+        {
+            where += " and [Type]=1";
+        }
+        else if (type == 2)
+        {
+            where += "and [Status]=0";
+        }
+        else if (type == 3)
+        {
+            where += "and [Status]=1";
+        }
+
+        if (!string.IsNullOrEmpty(shopId))
+        {
+            where += " and a.ShopID=@p" + parameters.Count;
+            parameters.Add(req.Int("shopId"));
+        }
+
+        if (!string.IsNullOrEmpty(accountId))
+        {
+            where += " and a.AccountID=@p" + parameters.Count;
+            parameters.Add(req.Int("accountId"));
+        }
+
+        if (DateTime.MinValue != dtFrom && DateTime.MinValue != dtTo)
+        {
+            where += " and AddTime between @p" + parameters.Count + " and @p" + (parameters.Count + 1);
+            parameters.Add(dtFrom.Date);
+            parameters.Add(dtTo.Date.AddDays(1));
+        }
+
+        var data = SQL.QueryPage("TransferID",
+            "TransferID,a.AccountID,AccountName,a.ShopID,b.ShopName,PlateNumber,[Type],[Status],CarType,Buyer,BuyerMobile,BuyerAddress,Seller,SellerMobile,SellerAddress,TransferRegion,Price,IsUpload,AddTime",
+            "[Transfer] a join Shop b on a.ShopID=b.ShopID join Account c on a.AccountID=c.AccountID",
+            where, page, pageSize, parameters, out total);
+
+        if (data != null)
+        {
+            dynamic item;
+            for (int i = 0; i < data.Count; i++)
+            {
+                item = data[i];
+                item.Persent = item.IsUpload && item.AccountID != 0 ? "100%" : (item.AccountID != 0 || item.IsUpload) ? "80%" : "60%";
+            }
+        }
+
+        Json.Write(new { success = true, data = data, total = total }, Output);
+        return;
+    }
+
+    Layout = "~/Views/Shared/_ManageLayout.cshtml";
+
+    var shops = SQL.Query("select ShopID as value,ShopName as text from Shop where Deleted=0");
+    if (shops != null)
+    {
+        shops.Insert(0, new
+        {
+            value = "",
+            text = "请选择"
+        });
+    }
+}
+<h1>过户单管理</h1>
+<div id="toolbar" class="toolbar"></div>
+<div id="grid"></div>
+<script>
+var shops=@(new MvcHtmlString(Json.Encode(shops)));
+</script>
+<script>
+    seajs.use(['jquery','lib/util','lib/buttons','lib/popup','lib/grid','lib/global.css'],function ($,util,Buttons,popup) {
+
+        //工具栏
+        var buttons=new Buttons('#toolbar',[{
+            ico: "modify",
+            value: "查看详情",
+            click: function () {
+                var data=grid.selectedRow().data;
+                popupAdd.control('id').html(data.TransferID);
+                popupAdd.control('type').html(data.Type==0?"过户":"转籍");
+                popupAdd.control('status').html(data.Status==0?"待补":"完成");
+                popupAdd.control('accountName').html(data.AccountName);
+                popupAdd.control('plateNumber').html(data.PlateNumber);
+                popupAdd.control('shopName').html(data.ShopName);
+                popupAdd.control('price').html(data.Price);
+                popupAdd.control('buyer').html(data.Buyer);
+                popupAdd.control('buyerMobile').html(data.BuyerMobile);
+                popupAdd.control('buyerAddress').html(data.BuyerAddress);
+                popupAdd.control('seller').html(data.Seller);
+                popupAdd.control('sellerMobile').html(data.SellerMobile);
+                popupAdd.control('sellerAddress').html(data.SellerAddress);
+                popupAdd.control('transferRegion').html(data.TransferRegion);
+                popupAdd.control('addTime').html(util.formatDate(data.AddTime));
+                
+                popupAdd.show();
+            }
+        }]);
+
+        var popupAdd=new popup.Form({
+            title: '查看详情',
+            width: 450,
+            height: 500,
+            controls: {
+                id: {
+                    label: '编号：',
+                    type: 'label',
+                    width: 260
+                },
+                plateNumber: {
+                    label: '车牌：',
+                    type: 'label'
+                },
+                type: {
+                    label: '类型：',
+                    type: 'label',
+                    width: 260
+                },
+                status: {
+                    label: '状态：',
+                    type: 'label',
+                    width: 260
+                },
+                accountName: {
+                    label: '账号：',
+                    type: 'label',
+                    width: 260
+                },
+                shopName: {
+                    label: '所属门店：',
+                    type: 'label'
+                },
+                price: {
+                    label: '成交价：',
+                    type: 'label',
+                    width: 260
+                },
+                buyer: {
+                    label: '买家：',
+                    type: 'label',
+                    width: 260
+                },
+                buyerMobile: {
+                    label: '买家手机：',
+                    type: 'label',
+                    width: 260
+                },
+                buyerAddress: {
+                    label: '买家地址：',
+                    type: 'label',
+                    width: 260
+                },
+                seller: {
+                    label: '卖家：',
+                    type: 'label',
+                    width: 260
+                },
+                sellerMobile: {
+                    label: '卖家手机：',
+                    type: 'label',
+                    width: 260
+                },
+                sellerAddress: {
+                    label: '卖家地址：',
+                    type: 'label',
+                    width: 260
+                },
+                transferRegion: {
+                    label: '转籍地：',
+                    type: 'label',
+                    width: 260
+                },
+                addTime: {
+                    label: '添加日期：',
+                    type: 'label',
+                    width: 260
+                }
+            },
+            buttons: [{
+                value: '关闭',
+                click: function () {
+                    popupAdd.hide();
+                }
+            }]
+        });
+
+        //列表
+        var grid=$('#grid').grid({
+            search: {
+                url: "?action=search",
+                beforeSend: function () {
+                    buttons.items(0).disable();
+                },
+                data: {
+                    type: {
+                        label: '状态',
+                        type: 'select',
+                        options: [{
+                            value: 0,
+                            text: '全部'
+                        },{
+                            value: 1,
+                            text: '转籍'
+                        },{
+                            value: 2,
+                            text: '待补'
+                        },{
+                            value: 3,
+                            text: '完成'
+                        }]
+                    },
+                    dtFrom: {
+                        label: '日期 从',
+                        type: 'calendar'
+                    },
+                    dtTo: {
+                        label: '到',
+                        type: 'calendar'
+                    },
+                    shopId: {
+                        type: 'hidden',
+                        value: util.getQueryString("?shopid")
+                    },
+                    accountId: {
+                        type: 'hidden',
+                        value: util.getQueryString("?accountid")
+                    },
+                    keywords: {
+                        label: "关键字：",
+                        type: 'text'
+                    }
+                }
+            },
+            onRowSelect: function () {
+                buttons.items(0).enable();
+            },
+            pageEnabled: true,
+            columns: [{
+                text: "编号",
+                bind: "TransferID",
+                width: 3
+            },{
+                text: "车牌号",
+                bind: "PlateNumber",
+                width: 5
+            },{
+                text: "门店",
+                bind: "ShopName",
+                width: 6
+            },{
+                text: "业务员",
+                bind: "AccountName",
+                width: 6
+            },{
+                text: "类型",
+                bind: "Type",
+                width: 6,
+                render: function (cell,data) {
+                    cell.append('<i class="gridCellItem">'+(data.Type==0?'过户':"转籍")+'</i>');
+                }
+            },{
+                text: "状态",
+                bind: "Status",
+                width: 6,
+                render: function (cell,data) {
+                    cell.append('<i class="gridCellItem">'+(data.Status==0?'待补':"完成")+'</i>');
+                }
+            }]
+        }).search();
+
+    });
+</script>

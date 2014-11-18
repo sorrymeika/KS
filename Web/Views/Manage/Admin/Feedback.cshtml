@@ -1,0 +1,237 @@
+﻿@using SL.Util
+@using SL.Data
+@{
+    RequestUtil req = new RequestUtil();
+
+    if (Request["action"] == "search")
+    {
+        Layout = null;
+
+        int page = req.Int("Page", defaultValue: 1);
+        int pageSize = req.Int("PageSize", defaultValue: 10);
+        int status = req.Int("Status", defaultValue: -1);
+        string keywords = req.String("Keywords");
+        string sort = req.String("Sort");
+        bool isAsc = req.Bool("Asc");
+        string dateFrom = req.String("dateFrom");
+        string dateTo = req.String("dateTo");
+
+        if (req.HasError)
+        {
+            Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+            return;
+        }
+
+        string where = "1=1";
+        List<object> parameters = new List<object>();
+        if (!string.IsNullOrEmpty(keywords))
+        {
+            where += " and (Content like '%'+@p" + parameters.Count + "+'%')";
+            parameters.Add(keywords);
+        }
+
+        if (!string.IsNullOrEmpty(dateFrom) && !string.IsNullOrEmpty(dateTo))
+        {
+            where += " and (a.FeedBackTime between @p" + parameters.Count + " and @p" + (parameters.Count + 1) + ")";
+            parameters.Add(DateTime.Parse(dateFrom + " 00:00:00"));
+            parameters.Add(DateTime.Parse(dateTo + " 23:59:59"));
+        }
+
+        if (status > -1)
+        {
+            where += " and a.Status=@p" + parameters.Count;
+            parameters.Add(status);
+        }
+
+        IDictionary<string, bool> sortDic = new Dictionary<string, bool>{
+            {"FeedBackTime",false}
+        };
+
+        int total;
+        var data = SQL.QueryPage(new[] { "FeedBackID" },
+            "FeedBackID,a.UserID,Content,FeedBackTime,b.UserName,b.Account,a.Status,a.Reply",
+            "FeedBack a join Users b on a.UserID=b.UserID",
+            where, page, pageSize, parameters.ToArray(), out total, sortDic);
+
+        Json.Write(new { success = true, data = data, total = total }, Output);
+        return;
+    }
+    else if (Request["action"] == "reply")
+    {
+        int feedBackId = req.Int("FeedBackID", false, "请传入编号");
+        String reply = req.String("content", false, "请传入回复内容");
+
+        if (req.HasError)
+        {
+            Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+            return;
+        }
+
+        SQL.Execute("update FeedBack set Reply=@p0,Status=1 where FeedBackID=@p1", reply, feedBackId);
+        Json.Write(new { success = true }, Output);
+        return;
+    }
+    else if (Request["action"] == "disable")
+    {
+        int feedBackId = req.Int("FeedBackID", false, "请传入编号");
+
+        if (req.HasError)
+        {
+            Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+            return;
+        }
+
+        SQL.Execute("update FeedBack set Status=2 where FeedBackID=@p0", feedBackId);
+
+        Json.Write(new { success = true }, Output);
+        return;
+    }
+
+    Layout = "~/Views/Shared/_ManageLayout.cshtml";
+}
+<h1>用户反馈管理</h1>
+<div id="toolbar" class="toolbar"></div>
+<div id="grid"></div>
+<script>
+    seajs.use(['jquery','lib/util','lib/buttons','lib/popup','lib/grid','lib/global.css'],function ($,util,Buttons,popup) {
+
+        //工具栏
+        var buttons=new Buttons('#toolbar',[{
+            ico: "modify",
+            value: "回复",
+            disabled: true,
+            click: function () {
+                var data=grid.selectedRow().data;
+
+                popupReply.control('feedbackId').val(data.FeedBackID);
+                popupReply.control('content').val(data.Reply);
+                popupReply.show();
+            }
+        },{
+            ico: "delete",
+            value: "不通过审核",
+            disabled: true,
+            click: function () {
+                var data=grid.selectedRow().data;
+
+                $.post('?action=disable',{
+                    feedbackId: data.FeedBackID
+                },function (res) {
+                    if(res.success) {
+                        alert('设置成功！');
+                        grid.searchCurrentPage();
+                    } else
+                        alert(res.msg);
+                },'json');
+            }
+        }]);
+
+        var popupReply=new popup.Form({
+            title: '回复用户',
+            width: 450,
+            controls: {
+                feedbackId: {
+                    type: 'hidden'
+                },
+                content: {
+                    label: '回复内容',
+                    labelVAlign: 'top',
+                    type: 'textarea',
+                    width: 300,
+                    height: 100,
+                    validation: {
+                        emptyAble: false,
+                        emptyText: '请填写内容'
+                    }
+                }
+            },
+            buttons: [{
+                value: '回复并通过审核',
+                click: function () {
+                    popupReply.submit({
+                        url: '?action=reply',
+                        success: function (res) {
+                            if(res.success) {
+                                popupReply.hide().reset();
+                                grid.searchCurrentPage();
+                            } else {
+                                alert(res.msg);
+                            }
+                        }
+                    });
+                }
+            },{
+                value: '取消',
+                click: function () {
+                    popupReply.hide().reset();
+                }
+            }]
+        });
+
+        //列表
+        var grid=$('#grid').grid({
+            search: {
+                url: "?action=search",
+                beforeSend: function () {
+                    buttons.disable(0,1);
+                },
+                data: {
+                    dateFrom: {
+                        label: '反馈时间 从',
+                        type: 'calendar'
+                    },
+                    dateTo: {
+                        label: '到',
+                        type: 'calendar'
+                    },
+                    keywords: {
+                        label: "关键字：",
+                        type: 'text'
+                    },
+                    status: {
+                        label: "状态：",
+                        type: 'select',
+                        options: [{
+                            text: '请选择',
+                            value: ''
+                        },{
+                            text: '未审核',
+                            value: 0
+                        },{
+                            text: '已回复',
+                            value: 1
+                        },{
+                            text: '未通过',
+                            value: 2
+                        }]
+                    }
+                }
+            },
+            onRowSelect: function () {
+                buttons.enable(0,1);
+            },
+            pageEnabled: true,
+            rowHeight: 100,
+            columns: [{
+                text: "编号",
+                bind: "FeedBackID",
+                width: 3
+            },{
+                text: "反馈内容",
+                bind: "Content",
+                width: 10
+            },{
+                text: "反馈回复",
+                bind: "Reply",
+                width: 14
+            },{
+                text: "反馈用户",
+                width: 6,
+                render: function (cell,data) {
+                    cell.append(util.formatDate(data.FeedBackTime)+"<br>姓名："+data.UserName+"<br>账号："+data.Account+"<br>状态："+(!data.Status?'<span style="color:orange">未审核</span>':data.Status==1?'<span style="color:green">已回复</span>':'<span style="color:red">未通过</span>'));
+                }
+            }]
+        }).search();
+
+    });
+</script>

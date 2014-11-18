@@ -1,0 +1,248 @@
+﻿@using SL.Util
+@using SL.Data
+@{
+    RequestUtil req = new RequestUtil();
+
+    if (Request["action"] == "search")
+    {
+        Layout = null;
+
+        int page = req.Int("Page", defaultValue: 1);
+        int pageSize = req.Int("PageSize", defaultValue: 10);
+        string keywords = req.String("Keywords");
+        string sort = req.String("Sort");
+        bool isAsc = req.Bool("Asc", defaultValue: false);
+
+        if (req.HasError)
+        {
+            Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+            return;
+        }
+
+        string where = "Deleted=0";
+        List<object> parameters = new List<object>();
+        if (!string.IsNullOrEmpty(keywords))
+        {
+            where += " and (ShopName like '%'+@p" + parameters.Count + "+'%')";
+            parameters.Add(keywords);
+        }
+
+        IDictionary<string, bool> sortDic = new Dictionary<string, bool>{
+            { string.IsNullOrEmpty(sort) ? "ShopID" : sort, isAsc }
+        };
+
+        int total;
+        var data = SQL.QueryPage("ShopID",
+            "ShopID,ShopName,Sort",
+            "Shop",
+            where, page, pageSize, parameters, out total, sortDic);
+
+        Json.Write(new { success = true, data = data, total = total }, Output);
+        return;
+    }
+    else if (Request["action"] == "add")
+    {
+        string shopName = req.String("ShopName", false, "请传入名称");
+
+        if (req.HasError)
+        {
+            Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+            return;
+        }
+
+        SQL.Execute("insert into Shop (ShopName) values (@p0)", shopName);
+
+        Json.Write(new { success = true }, Output);
+        return;
+    }
+    else if (Request["action"] == "modify")
+    {
+        int shopId = req.Int("ShopID", false, "请传入编号");
+        string shopName = req.String("ShopName", false, "请传入名称");
+
+        if (req.HasError)
+        {
+            Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+            return;
+        }
+
+        SQL.Execute("update Shop set ShopName=@p1 where ShopID=@p0", shopId, shopName);
+
+        Json.Write(new { success = true }, Output);
+        return;
+    }
+    else if (Request["action"] == "delete")
+    {
+        int shopId = req.Int("ShopID", false, "请传入编号");
+
+        if (req.HasError)
+        {
+            Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+            return;
+        }
+
+        SQL.Execute("update Shop set Deleted=1 where ShopID=@p0", shopId);
+
+        Json.Write(new { success = true }, Output);
+        return;
+    }
+
+    Layout = "~/Views/Shared/_ManageLayout.cshtml";
+}
+<h1>门店管理</h1>
+<div id="toolbar" class="toolbar"></div>
+<div id="grid"></div>
+<script>
+    seajs.use(['jquery','lib/util','lib/buttons','lib/popup','lib/grid','lib/global.css'],function ($,util,Buttons,popup) {
+
+        //工具栏
+        var buttons=new Buttons('#toolbar',[{
+            ico: "add",
+            value: "添加",
+            click: function () {
+                popupAdd.show();
+            }
+        },{
+            ico: "modify",
+            value: "修改",
+            disabled: true,
+            click: function () {
+                var data=grid.selectedRow().data;
+
+                popupModify.control('shopId').val(data.ShopID);
+                popupModify.control('shopName').val(data.ShopName);
+                popupModify.show();
+            }
+        },{
+            ico: "delete",
+            value: "停止门店",
+            disabled: true,
+            click: function () {
+                var data=grid.selectedRow().data;
+                if(window.confirm('确认停止门店？'))
+                    $.post('?action=delete',{
+                        ShopID: data.ShopID
+                    },function (res) {
+                        if(res.success) {
+                            grid.searchCurrentPage();
+                        } else
+                            alert(res.msg);
+                    },'json');
+            }
+        }]);
+
+        var popupAdd=new popup.Form({
+            title: '添加门店',
+            width: 450,
+            controls: {
+                shopName: {
+                    label: '门店名称',
+                    type: 'text',
+                    width: 260,
+                    validation: {
+                        emptyAble: false,
+                        emptyText: '请填写门店名称'
+                    }
+                }
+            },
+            buttons: [{
+                value: '添加',
+                click: function () {
+                    popupAdd.submit({
+                        url: '?action=add',
+                        success: function (res) {
+                            if(res.success) {
+                                popupAdd.hide().reset();
+                                grid.searchCurrentPage();
+                            } else {
+                                alert(res.msg);
+                            }
+                        }
+                    });
+                }
+            },{
+                value: '取消',
+                click: function () {
+                    popupAdd.hide().reset();
+                }
+            }]
+        });
+
+        var popupModify=new popup.Form({
+            title: '修改门店',
+            width: 450,
+            controls: {
+                shopId: {
+                    type: 'hidden'
+                },
+                shopName: {
+                    label: '门店名称',
+                    type: 'text',
+                    width: 260,
+                    validation: {
+                        emptyAble: false,
+                        emptyText: '请填写门店名称'
+                    }
+                }
+            },
+            buttons: [{
+                value: '修改',
+                click: function () {
+                    popupModify.submit({
+                        url: '?action=modify',
+                        success: function (res) {
+                            if(res.success) {
+                                popupModify.hide().reset();
+                                grid.searchCurrentPage();
+                            } else {
+                                alert(res.msg);
+                            }
+                        }
+                    });
+                }
+            },{
+                value: '取消',
+                click: function () {
+                    popupModify.hide().reset();
+                }
+            }]
+        });
+
+        //列表
+        var grid=$('#grid').grid({
+            search: {
+                url: "?action=search",
+                beforeSend: function () {
+                    buttons.items([1,2]).disable();
+                },
+                data: {
+                    keywords: {
+                        label: "关键字：",
+                        type: 'text'
+                    }
+                }
+            },
+            onRowSelect: function () {
+                buttons.items([1,2]).enable();
+            },
+            pageEnabled: true,
+            columns: [{
+                text: "编号",
+                bind: "ShopID",
+                width: 3
+            },{
+                text: "门店名称",
+                bind: "ShopName",
+                width: 10
+            },{
+                text: "查看",
+                bind: "Role",
+                width: 6,
+                render: function (cell,data) {
+                    cell.append('<i class="gridCellItem"><a href="Transfer?shopid='+data.ShopID+'" style="color:#c00">[下属过户单]</a></i>');
+                }
+            }]
+        }).search();
+
+    });
+</script>

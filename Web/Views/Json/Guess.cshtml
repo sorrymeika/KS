@@ -1,0 +1,16 @@
+﻿@using SL.Util
+@{
+    RequestUtil req = new RequestUtil();
+
+    int noteId = req.Int("noteId", false, "need noteId");
+    int closeId = req.Int("closeId", false, "need closeId");
+
+    if (req.HasError)
+    {
+        Json.Write(new { success = false, returnCode = "0000", msg = req.FirstError, errors = req.GetErrors() }, Output);
+        return;
+    }
+
+    Json.Write(new { success = true, result = SL.Data.SQL.Exists("select 1 from [Note] where NoteID=@p0 and CloseID=@p1", noteId, closeId) }, Output);
+    return;
+}

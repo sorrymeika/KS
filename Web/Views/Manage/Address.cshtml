@@ -1,0 +1,236 @@
+﻿@using SL.Data
+@using SL.Util
+@{
+    RequestUtil req = new RequestUtil();
+
+    if ("export" == Request.QueryString["action"])
+    {
+        Layout = null;
+
+        string dateFrom = req.String("dateFrom");
+        string dateTo = req.String("dateTo");
+        string keywords = req.String("keywords");
+
+        string where = "1=1";
+        List<object> parameters = new List<object>();
+
+        if (!string.IsNullOrEmpty(dateFrom) && !string.IsNullOrEmpty(dateTo))
+        {
+            where += " and (a.CreationTime between @p" + parameters.Count + " and @p" + (parameters.Count + 1) + ")";
+            parameters.Add(DateTime.Parse(dateFrom + " 00:00:00"));
+            parameters.Add(DateTime.Parse(dateTo + " 23:59:59"));
+        }
+
+        if (!string.IsNullOrEmpty(keywords))
+        {
+            where += " and (c.Name like '%'+ @p" + parameters.Count + "+'%' or b.PrizeName like '%'+@p" + parameters.Count + "+'%' or c.Email like '%'+@p" + parameters.Count + "+'%')";
+            parameters.Add(keywords);
+        }
+
+        var data = SQL.Query("select Receiver as 收货人,Address as 收货地址,Phone as 联系方式,Zip as 邮编,a.CreationTime as 中奖时间,b.PrizeName as 奖品,c.Name as 用户姓名,c.Email as 用户邮箱 from Address a join Prize b on a.PrizeID=b.PrizeID join Users c on a.UserID=c.UserID where " + where, parameters.ToArray());
+
+        ExcelUtil.doExport(data, Server.MapPath("~/upload/download.xls"));
+
+        Response.Redirect(Url.Content("~/upload/download.xls"));
+        return;
+
+    }
+    else if ("get" == Request.QueryString["action"])
+    {
+        Layout = null;
+
+        int page = req.Int("page", defaultValue: 1);
+        int pageSize = req.Int("pageSize", defaultValue: 10);
+
+        string dateFrom = req.String("dateFrom");
+        string dateTo = req.String("dateTo");
+        string keywords = req.String("keywords");
+
+        string where = "1=1";
+        List<object> parameters = new List<object>();
+        Dictionary<string, bool> sortDict = new Dictionary<string, bool>{
+            {"a.CreationTime",false}
+        };
+
+        if (!string.IsNullOrEmpty(dateFrom) && !string.IsNullOrEmpty(dateTo))
+        {
+            where += " and (a.CreationTime between @p" + parameters.Count + " and @p" + (parameters.Count + 1) + ")";
+            parameters.Add(DateTime.Parse(dateFrom + " 00:00:00"));
+            parameters.Add(DateTime.Parse(dateTo + " 23:59:59"));
+        }
+
+        if (!string.IsNullOrEmpty(keywords))
+        {
+            where += " and (c.Name like '%'+ @p" + parameters.Count + "+'%' or b.PrizeName like '%'+@p" + parameters.Count + "+'%' or c.Email like '%'+@p" + parameters.Count + "+'%')";
+            parameters.Add(keywords);
+        }
+
+        int total;
+        var data = SQL.QueryPage(
+            new[] { "AddressID" },
+            "AddressID,a.PrizeID,a.UserID,Receiver,Address,Phone,Zip,a.CreationTime,b.Picture,b.PrizeName,c.Name,c.Email",
+            "Address a join Prize b on a.PrizeID=b.PrizeID join Users c on a.UserID=c.UserID",
+            where,
+            page,
+            pageSize,
+            parameters.ToArray(),
+            out total,
+            sortDict);
+
+        if (data != null)
+        {
+            data.All(a =>
+            {
+                a["Picture"] = Url.Content("~/upload/" + a["Picture"]);
+                return true;
+            });
+        }
+
+        Json.Write(new { success = true, data = data, total = total }, Output);
+        return;
+    }
+    ViewBag.Title = "Settings";
+    Layout = "~/Views/Shared/_ManageLayout.cshtml";
+}
+<h1>管理中奖的用户</h1>
+<div id="toolbar" class="toolbar"></div>
+<div id="grid"></div>
+<script>
+    seajs.use(['jquery','lib/buttons','lib/popup','lib/grid','lib/global.css'],function ($,Buttons,popup) {
+
+        //修改服装
+        var dialogModify=new popup.Form({
+            url: '?action=modify',
+            title: '查看用户信息',
+            width: 520,
+            controls: {
+                Receiver: {
+                    label: '收货人',
+                    type: 'label'
+                },
+                Address: {
+                    label: '地址',
+                    type: 'label'
+                },
+                Phone: {
+                    label: '联系方式',
+                    type: 'label'
+                },
+                Zip: {
+                    label: '邮编',
+                    type: 'label'
+                },
+                CreationTime: {
+                    label: '中奖时间',
+                    type: 'label'
+                },
+                Name: {
+                    label: '用户姓名',
+                    type: 'label'
+                },
+                Email: {
+                    label: '用户邮箱',
+                    type: 'label'
+                },
+                PrizeName: {
+                    label: '奖品',
+                    type: 'label'
+                },
+                Picture: {
+                    label: '奖品图片',
+                    type: 'label'
+                }
+            },
+            buttons: [{
+                text: '确定',
+                click: function () {
+                    dialogModify.hide();
+                }
+            }]
+        });
+
+        var buttons=new Buttons("#toolbar",[{
+            text: "查看",
+            ico: "view",
+            disabled: true,
+            click: function () {
+                var data=grid.selectedRow().data;
+                $.each(data,function (k,v) {
+                    if(k=='Picture') {
+                        dialogModify.control(k).html('<img src="'+v+'" style="height:100px"/>');
+                    } else
+                        dialogModify.control(k).html(v);
+                });
+                dialogModify.show();
+            }
+        },{
+            text: "导出搜索结果",
+            ico: "view",
+            click: function () {
+                window.open("?action=export&dateFrom="+grid.searchInput('dateFrom').val()
+					+"&dateTo="+grid.searchInput('dateTo').val()+"&keywords="+grid.searchInput('keywords').val());
+            }
+        }]);
+
+
+        var grid=$('#grid').grid({
+            pageEnabled: true,
+            search: {
+                beforeSend: function () {
+                    buttons.items(0).disable();
+                },
+                url: '?action=get',
+                data: {
+                    dateFrom: {
+                        label: '获奖时间 从',
+                        type: 'calendar'
+                    },
+                    dateTo: {
+                        label: '到',
+                        type: 'calendar'
+                    },
+                    keywords: {
+                        label: '关键字'
+                    }
+                }
+            },
+            onRowSelect: function (row,data) {
+                buttons.items(0).enable();
+            },
+            columns: [{
+                text: '编号',
+                bind: 'AddressID',
+                width: 6
+            },{
+                text: '收货人',
+                bind: 'Receiver',
+                width: 6
+            },{
+                text: '收货地址',
+                bind: 'Address',
+                width: 10
+            },{
+                text: "联系方式",
+                bind: 'Phone',
+                width: 6
+            },{
+                text: "邮编",
+                bind: 'Zip',
+                width: 6
+            },{
+                text: "获奖日期",
+                bind: 'CreationTime',
+                width: 6
+            },{
+                text: "奖品",
+                bind: 'PrizeName',
+                width: 6
+            },{
+                text: "邮箱",
+                bind: 'Email',
+                width: 6
+            }]
+        }).search();
+
+    });
+</script>
