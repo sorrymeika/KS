@@ -13,3 +13,52 @@ a:hover { color: #999; }
 .clearfix:after { visibility: hidden; display: block; font-size: 0; content: ""; clear: both; height: 0; }
 
 
+body { background: url(images/bg.jpg) center top no-repeat; }
+
+.click { width: 100%; height: 100%; }
+
+.dialog { position: absolute; left: 50%; width: 320px; margin-left: -200px; top: 200px; padding: 40px; }
+.dialog .close { position: absolute;right: 0; top: 0; display: inline-block; width: 30px; height: 30px; line-height: 30px; text-align: center; color:#cc0000; border-bottom: 1px solid #ddd; border-left: 1px solid #ddd; }
+.dialog .hd { text-align: center; font-weight: bold; font-size: 18px; }
+
+.start { background:#fff;}
+.link { font-size: 14px; color:#d41310; }
+
+.action { text-align: center; }
+.btn{ display: inline-block; height: 31px; line-height: 31px; min-width:100px; color:#fff; background-color:#dd0f06; }
+
+.form ul{margin-top: 20px;}
+.form ul li { height: 35px; font-size: 12px; display:-webkit-box; padding-right: 20px; }
+.form li span { display: block; padding-top: 10px; width: 70px; }
+.form li input { height: 25px; border: 0;border-bottom: 1px solid #000; display: block; -webkit-box-flex: 1; }
+.form .action { padding-top: 20px; }
+
+.info { margin-left: 20px; margin-top: 10px; }
+.info li { height: 40px; font-size: 12px; display:-webkit-box; padding-right: 20px; }
+.info li span { display: block; padding-top: 10px; width: 60px; }
+.info li .checkbox { display: block; padding: 10px;display: inline-block; }
+.info li .checkbox i { width: 15px; height: 15px; display: inline-block; border: 1px solid #333; border-radius: 9px; vertical-align: -3px; margin-right: 3px; }
+.info li .checkbox.checked i b { display: inline-block; content: ''; width: 13px; height: 13px; border-radius: 7px; border: 1px solid #fff; background:#333; }
+.info li input,.info li select { height: 25px;  display: block; -webkit-box-flex: 1; }
+.info .action { text-align: center; }
+
+.infodialog { background:#fff; }
+
+.playwrap { background:url(images/playbg.jpg) no-repeat; width: 610px; height:421px; padding: 0; margin-left: -305px; }
+.play { width: 510px; height:270px;background: url(images/site.png) 0px -250px no-repeat;margin: 50px auto 0 auto; text-align: center; padding-top:1px; }
+.play p { display: inline-block;  width: 134px; height:174px;background: url(images/site.png) 0px -580px no-repeat; margin-top: 48px; }
+.play p.pic1{ background-position:-150px -580px; }
+.play p.pic2{ background-position:-300px -580px; }
+.playwrap .action { padding-top: 30px; }
+.playwrap .btn { font-weight: bold; height: 40px; line-height: 40px; width: 120px; }
+
+.prizewrap {background:url(images/prizebg.png) no-repeat; width: 618px; height:618px; padding: 0; margin-left: -309px; top: 50px; }
+.prizebg img {width:173px; margin-top: 4px;}
+.prizecon {  text-align: center; border-radius: 6px; padding: 12px 5px; padding-top: 100px; }
+.prizecon b {  display: block;color:#dd0f06; font-size: 18px; }
+.prizecon b.btn {  color:#fff; display: inline-block; padding: 0 20px; font-size: 14px; margin-top: 10px; }
+.prizecon .win{ color:#dd0f06; font-size: 16px; text-align: center; }
+.prizecon p { color:#dd0f06; margin: 10px auto; text-decoration: underline; }
+
+.infodialog { border:1px solid #ddd; }
+.dlg_address .prizecon { padding-top: 0;}

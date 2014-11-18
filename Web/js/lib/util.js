@@ -1,13 +1,13 @@
-﻿define(function (require,exports,module) {
+﻿define(function(require,exports,module) {
     var $=require('jquery'),
         _guid=0,
         doc=document;
 
     var util={
-        guid: function () {
+        guid: function() {
             return ++_guid;
         },
-        stringify: function (o) {
+        stringify: function(o) {
             var r=[];
             if(typeof o=="string") return quote(o);
             if(typeof o=="undefined") return "undefined";
@@ -39,7 +39,7 @@
                 };
                 escapable.lastIndex=0;
                 return escapable.test(string)?
-                    '"'+string.replace(escapable,function (a) {
+                    '"'+string.replace(escapable,function(a) {
                         var c=meta[a];
                         return typeof c==='string'?c:
                             '\\u'+('0000'+a.charCodeAt(0).toString(16)).slice(-4);
@@ -47,17 +47,17 @@
                 '"'+string+'"';
             }
         },
-        parse: function (str) {
+        parse: function(str) {
             return (new Function("return "+str))()
         },
-        template: function (str,data) {
+        template: function(str,data) {
             var tmpl='var __p=[];'+'with(obj||{}){__p.push(\''+
                 str.replace(/\\/g,'\\\\')
                 .replace(/'/g,'\\\'')
-                .replace(/<%=([\s\S]+?)%>/g,function (match,code) {
+                .replace(/<%=([\s\S]+?)%>/g,function(match,code) {
                     return '\','+code.replace(/\\'/,'\'')+',\'';
                 })
-                .replace(/<%([\s\S]+?)%>/g,function (match,code) {
+                .replace(/<%([\s\S]+?)%>/g,function(match,code) {
                     return '\');'+code.replace(/\\'/,'\'')
                             .replace(/[\r\n\t]/g,' ')+'__p.push(\'';
                 })
@@ -70,29 +70,29 @@
 
             return data?func(data):func;
         },
-        htmlEncode: function (text) {
+        htmlEncode: function(text) {
             return (""+text).split("<").join("&lt;").split(">").join("&gt;").split('"').join("&#34;").split("'").join("&#39;");
         },
-        bind: function () {
+        bind: function() {
             var slice=Array.prototype.slice,
                 args=slice.call(arguments),
                 fn=args.shift(),
                 object=args.shift();
-            return function () {
+            return function() {
                 return fn.apply(object,args.concat(slice.call(arguments)));
             }
         },
-        pad: function (num,n) {
+        pad: function(num,n) {
             var a='0000000000000000'+num;
             return a.substr(a.length-(n||2));
         },
-        sum: function (arr,f) {
+        sum: function(arr,f) {
             var res=0;
             if(f) for(var i=0,n=arr.length;i<n;i++) res+=f(i,arr[i],n);
             else for(var i=0,n=arr.length;i<n;i++) res+=arr[i];
             return res;
         },
-        indexOf: function (arr,f) {
+        indexOf: function(arr,f) {
             var index=0;
             if($.isFunction(f)) {
                 for(var i=0,item,n=arr.length;i<n;i++) {
@@ -106,7 +106,7 @@
             }
             return res;
         },
-        formatDate: function (d,f) {
+        formatDate: function(d,f) {
             if(typeof d=="string"&&/^\/Date\(\d+\)\/$/.test(d)) {
                 d=new Function("return new "+d.replace(/\//g,''))();
             }
@@ -124,11 +124,11 @@
                 .replace(/m/,m)
                 .replace(/s{2,}/,pad(s))
                 .replace(/s/,s)
-                .replace(/f+/,function (w) {
+                .replace(/f+/,function(w) {
                     return mill.substr(0,w.length)
                 })
         },
-        addStyle: function (css) {
+        addStyle: function(css) {
             var style=doc.createElement("style");
             style.type="text/css";
             try {
@@ -139,13 +139,13 @@
             var head=doc.getElementsByTagName("head")[0];
             head.appendChild(style);
         },
-        submit: function (form,url,fn) {
+        submit: function(form,url,fn) {
             var me=$(form),
-                blankFn=function () { };
+                blankFn=function() { };
 
             var settings=url&&typeof url==="object"?$.extend({
                 url: me.attr('action'),
-                validate: function () {
+                validate: function() {
                     return true;
                 },
                 beforeSend: blankFn,
@@ -163,7 +163,7 @@
                 if(me.has('[type="file"]').length>0) {
                     me.attr('action',settings.url);
 
-                    util.submitForm(me,function (data) {
+                    util.submitForm(me,function(data) {
                         settings.success&&settings.success.call(me,data)
                     });
                 } else {
@@ -172,17 +172,17 @@
                         type: 'POST',
                         dataType: 'json',
                         data: me.serialize(),
-                        success: function (data) {
+                        success: function(data) {
                             settings.success&&settings.success.call(me,data)
                         },
-                        error: function (xhr) {
+                        error: function(xhr) {
                             settings.error&&settings.error.call(me,xhr);
                         }
                     });
                 }
             }
         },
-        submitForm: function (form,callback) {
+        submitForm: function(form,callback) {
             var $form=$(form),
                 $callback=$form.find('[name="callback"]'),
                 guid=this.guid(),
@@ -190,7 +190,7 @@
                 eventName="_submitForm_"+guid,
                 $iframe=$('<iframe style="top:-999px;left:-999px;position:absolute;display:none;" frameborder="0" width="0" height="0" name="'+target+'"></iframe>');
 
-            window[eventName]=function (data) {
+            window[eventName]=function(data) {
                 callback.call($form,data);
                 $iframe.remove();
                 delete window[eventName];
@@ -204,14 +204,14 @@
             $form.attr("target",target)
                 .submit();
         },
-        createOptions: function (args,options) {
+        createOptions: function(args,options) {
             var length=args.length;
             if(length==1&&$.isPlainObject(args[0])) {
                 $.extend(options,args[0]);
             }
             else {
                 var arr=[];
-                $.each(options,function (j,opt) {
+                $.each(options,function(j,opt) {
                     for(var i=0,arg;i<length;i++) {
                         if($.inArray(i,arr)>=0) break;
                         arg=args[i];
@@ -225,13 +225,13 @@
             }
             return options;
         },
-        getCookie: function (name) {
+        getCookie: function(name) {
             var res=doc.cookie.match(new RegExp("(^| )"+name+"=([^;]*)(;|$)"));
             if(res!=null)
                 return unescape(res[2]);
             return null;
         },
-        setCookie: function (a,b,c,p) {
+        setCookie: function(a,b,c,p) {
             if(c) {
                 var d=new Date();
                 d.setTime(d.getTime()+c*24*60*60*1000);
@@ -239,16 +239,16 @@
             }
             doc.cookie=a+"="+escape(b)+(c||"")+";path="+(p||'/')
         },
-        removeCookie: function (name) {
+        removeCookie: function(name) {
             var v=this.get(name);
             if(v!=null)
                 this.set(name,v,-1);
         },
-        getQueryString: function (name) {
+        getQueryString: function(name) {
             var result=location.search.match(new RegExp("[\?\&]"+name+"=([^\&]+)","i"));
             return (result==null||result.length<1)?null:result[1];
         },
-        offsetParent: function (el) {
+        offsetParent: function(el) {
             var parent=el.parent(),
             position;
             while(parent.length!=0&&parent[0].tagName.toLowerCase()!="body") {
@@ -258,22 +258,30 @@
             }
             return parent;
         },
-        isIE6: /MSIE 6/.test(navigator.userAgent)
+        isIE6: /MSIE 6/.test(navigator.userAgent),
+        store: function(key,value) {
+            if(typeof value==='undefined')
+                return JSON.parse(this.getCookie(key));
+            if(value===null)
+                this.setCookie(key,-1);
+            else
+                this.setCookie(key,JSON.stringify(value));
+        }
     };
 
-    util.template=util.format=function (t,obj) {
-        return t.replace(/\{([^}]+)\}/g,function (g0,key) {
+    util.template=util.format=function(t,obj) {
+        return t.replace(/\{([^}]+)\}/g,function(g0,key) {
             var $data=obj[key];
             return $data;
         });
     };
 
-    util.tab=function (tabs,contents) {
+    util.tab=function(tabs,contents) {
         tabs=$(tabs);
         contents=$(contents);
         var index=0;
 
-        tabs.click(function () {
+        tabs.click(function() {
             var newIndex=tabs.index(this);
             if(newIndex!=index) {
                 tabs.eq(newIndex).addClass("curr");

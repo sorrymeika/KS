@@ -28,7 +28,7 @@
 
             that.on('Destory', function() {
                 this.mask.off('tap').remove();
-            };
+            });
             that.on('Hide', function() {
                 this.$el.removeClass('visible');
             });

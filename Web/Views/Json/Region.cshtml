@@ -1,0 +1,16 @@
+﻿@using SL.Util
+@using SL.Data
+@{
+    if ("province".Equals(Request.QueryString["action"]))
+    {
+        var data = SQL.Query("select PRV_ID as id,PRV_NAME as name from RPROVINCE order by PRV_ORDER_NUM desc");
+        Json.Write(new { success = true, data = data }, Output);
+        return;
+    }
+    else if ("city".Equals(Request.QueryString["action"]))
+    {
+        var data = SQL.Query("select CTY_ID as id,CTY_NAME as name from RCITY where CTY_PRV_ID=@p0 order by CTY_ORDER_NUM desc", int.Parse(Request.QueryString["provid"]));
+        Json.Write(new { success = true, data = data }, Output);
+        return;
+    }
+}

@@ -1,0 +1,39 @@
+﻿@using SL.Util
+@using SL.Data
+@{
+    
+    RequestUtil req = new RequestUtil();
+    string email = req.String("email", false, "请填写邮箱", @"^[-_a-zA-Z0-9\.]+@([-_a-zA-Z0-9]+\.)+[a-zA-Z0-9]{2,3}$", "邮箱格式不正确");
+    string name = req.String("name", false, "请填写姓名");
+    string mobile = req.String("mobile", false, "请填写手机", @"^1\d{10}$", "请填写正确的手机号");
+
+    if (req.HasError)
+    {
+        Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+        return;
+    }
+
+    var user = SQL.QuerySingle("select USL_CTM_ID as UserID from BUSERLOGIN where USL_LOGINNAME=@p0", mobile);
+    int userid;
+
+    if (user != null)
+    {
+        Json.Write(new { success = true, isUserExists = true, uid = user.UserID }, Output);
+        return;
+    }
+    else
+    {
+        using (Database db = Database.Open())
+        {
+            //userid = db.QueryValue<int>("select SEQ_NUM from SSequence where SEQ_TABLE='BCUSTOMER'");
+            //db.Execute("update SSequence set SEQ_NUM=SEQ_NUM+SEQ_STEP where SEQ_TABLE='BCUSTOMER'");
+
+            var now = DateTime.Now;
+            db.Execute("insert into BCUSTOMER (CTM_EMAIL,CTM_NAME,CTM_CREATION_DT,CTM_MOBILE) values (@p0,@p1,@p2,@p3)", out userid, email, name, now, mobile);
+            db.Execute("insert into BUSERLOGIN (USL_CTM_ID,USL_REG_DT,USL_LOGINNAME) values (@p0,@p1,@p2)", userid, now, mobile);
+        }
+    }
+
+    Json.Write(new { success = true, uid = userid }, Output);
+    return;
+}

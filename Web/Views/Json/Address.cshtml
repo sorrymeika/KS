@@ -16,7 +16,7 @@
         return;
     }
 
-    var user = SQL.QuerySingle("select PrizeID from Users where UserID=@p0", userid);
+    var user = SQL.QuerySingle("select CTM_PRZ_ID from BCUSTOMER where CTM_ID=@p0", userid);
 
     if (user == null || user.PrizeID != prizeid)
     {

@@ -1,8 +1,7 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
-    <title>enjoy your holiday</title>
-    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <title>enjoy your holiday</title><meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
     <meta charset="utf-8" />
     <link href="anim.css" rel="stylesheet" type="text/css" />
     <link href="style.css" rel="stylesheet" type="text/css" />
@@ -16,11 +15,11 @@
             }
         });
 
-        seajs.use(['$','sl/sl','app'],function ($,sl,_app) {
-            var m=location.hash.match("/share/(.+)");
-            if(m&&m[1]) {
-                location.href="index1.html";
-                return;
+        seajs.use(['$','sl/sl','app'],function($,sl,_app) {
+            if(['#/','','#','/'].indexOf(location.hash)== -1) {
+                //location.href="index.html";
+                //return;
+                console.log(location.hash);
             }
 
             var app=new sl.Application();
@@ -28,9 +27,9 @@
             app.mapRoute({
                 '': 'index',
                 'start.html': 'start',
-                'write/{id:\\d+}.html': 'write',
+                'play.html': 'play',
                 'share/{data:.+}': 'share',
-                'prize/{data:.+}': 'prize',
+                'prize.html': 'prize',
                 'sorry.html': 'sorry',
                 'menu/{name:\\w+}.html': 'menu',
                 'add.html': 'add',
@@ -52,15 +51,25 @@
         document.addEventListener('WeixinJSBridgeReady',function onBridgeReady() {
 
             // 分享到朋友圈
-            WeixinJSBridge.on('menu:share:timeline',function (argv) {
+            WeixinJSBridge.on('menu:share:timeline',function(argv) {
                 WeixinJSBridge.invoke('shareTimeline',{
-                    "img_url": 'http://222.73.41.2:8085/assets/images/bottom.png',
+                    "img_url": '/assets/images/logo.jpg',
                     "img_width": "160",
                     "img_height": "160",
                     "link": location.href,
-                    "desc": "enjoy your holiday",
+                    "desc": "Enjoy your holiday,kate spade new york限量好礼等你赢！",
                     "title": "enjoy your holiday"
-                },function (res) { });
+                },function(res) { });
+            });
+
+            // 发送给好友
+            WeixinJSBridge.on('menu:share:appmessage',function(argv) {
+                WeixinJSBridge.invoke('sendAppMessage',{
+                    "img_url": '/assets/images/logo.jpg',
+                    "link": location.href,
+                    "desc": "Enjoy your holiday,kate spade new york限量好礼等你赢！",
+                    "title": "enjoy your holiday"
+                },function(res) { })
             });
 
         },false)

@@ -29,12 +29,7 @@ namespace SL.Web
             );
 
             #region 默认
-            routes.MapRoute(
-                "Entrance",
-                "",
-                new { controller = "Core", action = "Home" }
-            );
-
+            
             routes.MapRoute(
                "JsonDefault",
                "Json/{catalog}/{handle}",

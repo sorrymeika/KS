@@ -1,0 +1,334 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>enjoy</title>
+    <link href="/theme/style.css" rel="Stylesheet" />
+    <!--[if lt IE 9]><link href="/theme/ie.css" rel="Stylesheet" /><![endif]-->
+    <script src="/js/seajs/sea.js"></script>
+    <script>
+        seajs.config({
+            alias: {
+                "jquery": "lib/jquery-1.7.2.min",
+                "$": "lib/jquery-1.7.2.min"
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="click"></div>
+    <div class="start dialog js_start"><b class="close">x</b>
+        <div class="userinfo form">
+            <div class="hd">请填写以下信息，参与抽奖！</div>
+            <ul>
+                <li><span>姓名：*</span><input class="js_name" type="text" /></li>
+                <li><span>手机号码：*</span><input class="js_mobile" type="number" /></li>
+                <li><span>电子邮箱：*</span><input class="js_email" type="email" /></li>
+            </ul>
+            <div class="action"><em class="link js_start_now">立即抽奖>></em></div>
+        </div>
+    </div>
+    <div class="infodialog dialog hide dlg_userinfo">
+        <div class="hd">此手机号码已注册！<br>
+            请完善您的信息参与抽奖！</div>
+        <ul class="info">
+            <li><span>手机：*</span><input class="js_mobile1" type="number" readonly /></li>
+            <li><span>性别：*</span><em class="checkbox checked" data-name="gender" data-value="2"><i><b></b></i>女</em><em class="checkbox" data-value="1" data-name="gender"><i><b></b></i>男</em></li>
+            <li><span>生日：*</span><input class="js_birthday" type="date" /></li>
+            <li><span>省份：*</span><select class="js_province"></select></li>
+            <li><span>城市：*</span><select class="js_city"></select></li>
+            <li><span>地址：*</span><input class="js_address" type="text" /></li>
+        </ul>
+        <div class="action"><b class="btn js_info_ok">确定</b></div>
+    </div>
+    <div class="dlg_play dialog playwrap">
+        <div class="play">
+            <p></p>
+            <p class="pic1"></p>
+            <p class="pic2"></p>
+        </div>
+        <div class="action"><b class="btn js_play" hl>点击抽奖</b></div>
+    </div>
+    <div class="dlg_prize dialog prizewrap">
+        <div class="prizebg">
+            <div class="prizecon"><b>恭喜您！</b>
+                <div class="win">中了<span class="js_text"></span>1个！</div>
+                <img class="js_img" src="" />
+                <p class="js_get">请填写您的收货地址</p>
+            </div>
+        </div>
+    </div>
+     <div class="dlg_sorry dialog prizewrap">
+        <div class="prizebg">
+            <div class="prizecon"><b style="margin-top: 100px">很遗憾！</b>
+                <div class="win">您没有中奖！</div>
+            </div>
+        </div>
+    </div>
+    <div class="infodialog hide dialog dlg_address">
+        <div class="prizecon">
+            <div class="hd">请正确填写以下信息</div>
+            <ul class="info">
+                <li><span>收件人：*</span><input class="js_receiver" placeholder="请输入收件人" /></li>
+                <li><span>电话：*</span><input class="js_phone" placeholder="请输入电话" /></li>
+                <li><span>邮编：*</span><input class="js_zip" placeholder="请输入邮编" /></li>
+                <li><span>地址：*</span><input class="js_address" placeholder="请输入地址" /></li>
+            </ul>
+            <div class="action"><b class="btn js_accept" hl>确认</b></div>
+        </div>
+    </div>
+    <script>
+        seajs.use(['$','lib/util'],function($,util) {
+            $('.click').css({ height: $(window).height() }).click(function() {
+                $('.js_start').fadeIn();
+            });
+
+
+            $('.js_start .js_name').val(util.getQueryString('name'));
+            $('.js_start .js_email').val(util.getQueryString('email'));
+            $('.js_start .js_mobile').val(util.getQueryString('mobile'));
+
+            $('.checkbox').click(function(e) {
+                var $target=$(e.currentTarget);
+
+                $target.addClass('checked').siblings('.checked').removeClass('checked');
+            })
+
+            $('.js_get').click(function(e) {
+                $('.dlg_address').fadeIn();
+            })
+
+
+
+
+            $('.js_province').change(function(e) {
+                var value=e.currentTarget.value,
+                    $city=$('.js_city'),
+                city=$city[0];
+                city.options.length=0;
+
+                if(!value) {
+                    city.options.add(new Option('',""));
+                } else {
+                    city.options.add(new Option('正在载入...',""));
+
+                    $.ajax({
+                        url: ('/json/region?action=city&provid='+value),
+                        dataType: 'json',
+                        success: function(res) {
+                            city.options[0].text=('请选择');
+                            $.each(res.data,function(i,item) {
+                                city.options.add(new Option(item.name,item.id));
+                            });
+                        },
+                        error: function(res) {
+                            city.options[0].text=(res&&res.msg||'网络错误');
+                        }
+                    });
+                }
+            });
+
+            $('.js_info_ok').click(function() {
+                var data={
+                    userid: util.store('userid'),
+                    city: $('.dlg_userinfo .js_city')[0].value,
+                    address: $('.dlg_userinfo .js_address').val(),
+                    gender: $('dlg_userinfo [data-name="gender"].checked').data('value'),
+                    birthday: $('.dlg_userinfo .js_birthday').val()
+                };
+
+                if(!data.birthday) {
+                    alert('请填写您的生日');
+                    return;
+                }
+                if(!data.city) {
+                    alert('请选择省市');
+                    return;
+                }
+                if(!data.address) {
+                    sl.tip('请填写地址');
+                    return;
+                }
+
+                $.ajax({
+                    dataType: 'json',
+                    url: '/json/info',
+                    type: 'POST',
+                    checkData: false,
+                    data: data,
+                    success: function(res) {
+                        $('.dlg_userinfo').fadeOut();
+
+                        util.store('userinfo',data);
+                        $('.dlg_play').fadeIn();
+                    },
+                    error: function(res) {
+                        alert(res.msg);
+                    }
+                });
+            });
+
+            var that=window;
+            window.start=function() {
+                var items=$('.play p');
+
+                that.timer&&clearInterval(that.timer);
+                that.timer=setInterval(function() {
+                    items.each(function() {
+                        var a=Math.random();
+                        if(a<=0.33) {
+                            $(this).removeClass().addClass('pic1');
+                        } else if(a>0.33&&a<=0.66) {
+                            $(this).removeClass().addClass('pic2');
+                        } else {
+                            $(this).removeClass();
+                        }
+                    });
+                },50);
+            };
+
+            $('.js_accept').click(function() {
+                var data={
+                        userId: util.store('userid'),
+                        prizeId: util.store('prize').PrizeID,
+                        receiver: $('.dlg_address .js_receiver').val(),
+                        phone: $('.dlg_address .js_phone').val(),
+                        zip: $('.dlg_address .js_zip').val(),
+                        address: $('.dlg_address .js_address').val()
+                    };
+
+                if(!data.receiver) {
+                    alert('请填写收件人');
+                    return;
+                }
+                if(!data.phone) {
+                    alert('请填写电话');
+                    return;
+                }
+                if(!data.zip) {
+                    alert('请填写邮编');
+                    return;
+                }
+                if(!data.address) {
+                    alert('请填写地址');
+                    return;
+                }
+
+                $.ajax({
+                    url: '/json/address',
+                    dataType: 'json',
+                    type: 'POST',
+                    checkData: false,
+                    data: data,
+                    success: function(res) {
+                        alert('填写成功，感谢您的参与！');
+                        $('.dlg_address').fadeOut();
+                    },
+                    error: function(res) {
+                        alert(res.msg);
+                    }
+                });
+            });
+
+            $('.js_play').click(function() {
+
+                start();
+
+                $.ajax({
+                    url: '/json/play',
+                    dataType: 'json',
+                    type: 'POST',
+                    checkData: false,
+                    data: {
+                        userid: util.store('userid')
+                    },
+                    success: function(res) {
+
+                        setTimeout(function() {
+                            that.timer&&clearInterval(that.timer);
+
+                            $('.dlg_play').fadeOut();
+                            if(res.prize) {
+                                util.store('prize',res.prize);
+                                $('.dlg_prize').fadeIn();
+                            } else {
+                                $('.dlg_sorry').fadeIn();
+                            }
+
+                        },1000);
+
+                    },
+                    error: function(res) {
+                        this.hideLoading();
+                        sl.tip(res.msg);
+                    }
+                });
+
+            });
+
+            var $province=$('.js_province'),
+                province=$province[0];
+            province.options.length=0;
+            province.options.add(new Option('正在载入...',""));
+
+            $.ajax({
+                url: '/json/region?action=province',
+                dataType: 'json',
+                success: function(res) {
+                    province.options[0].text=('请选择');
+                    $.each(res.data,function(i,item) {
+                        province.options.add(new Option(item.name,item.id));
+                    });
+                },
+                error: function(res) {
+                    province.options[0].text=(res&&res.msg||'网络错误');
+                }
+            });
+
+            $('.js_start_now').click(function() {
+                var data={
+                    name: $('.js_start .js_name').val(),
+                    email: $('.js_start .js_email').val(),
+                    mobile: $('.js_start .js_mobile').val()
+                };
+
+                if(!data.name) {
+                    alert('请填写姓名');
+                    return;
+                }
+                if(!data.email) {
+                    alert('请填写邮箱');
+                    return;
+                }
+                if(!data.mobile) {
+                    alert('请填写手机');
+                    return;
+                }
+
+                $.ajax({
+                    dataType: 'json',
+                    url: '/json/register',
+                    type: 'POST',
+                    checkData: false,
+                    data: data,
+                    success: function(res) {
+
+                        util.store('userid',res.uid);
+                        if(res.isUserExists) {
+                            $('.js_mobile1').val(data.mobile);
+
+                        } else {
+                            $('.dlg_play').fadeIn();
+                        }
+                        $('.js_start').fadeOut();
+
+                    },
+                    error: function(res) {
+                        alert(res.msg);
+                    }
+                });
+
+            });
+        });
+    </script>
+</body>
+</html>

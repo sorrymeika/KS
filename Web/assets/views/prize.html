@@ -1,20 +1,24 @@
-<section class="main prizewrap">
-    <div class="logo"></div>
-    <div class="prizebg">
-        <b>恭喜您！</b>
-        <span>中了<span class="js_text"></span>1个！</span>
-        <img class="js_img" src="" />
-        <p class="js_get">请填写您的收货地址</p>
+<section class="main bg prizewrap">
+    <div class="content">
+        <div class="prizebg">
+            <div class="prizecon"><b>恭喜您！</b> <span>中了<span class="js_text"></span>1个！</span> <img class="js_img" src="" />
+                <b class="btn js_share">把活动分享给好友</b>
+                <p class="js_get">请填写您的收货地址</p>
+            </div>
+        </div>
     </div>
 </section>
 <div class="screen hide js_mask" style="background: rgba(0,0,0,.5); position: fixed; top: 0; left: 0; -webkit-transition: opacity 200ms ease 0ms; display: none;"></div>
-<div class="addressdialog hide js_dialog">
-    <div class="hd">请正确填写以下信息</div>
-    <ul>
-        <li><input class="js_receiver" placeholder="请输入收件人" /></li>
-        <li><input class="js_phone" placeholder="请输入电话" /></li>
-        <li><input class="js_zip" placeholder="请输入邮编" /></li>
-        <li><input class="js_address" placeholder="请输入地址" /></li>
-    </ul>
-    <div class="action"><b class="btn_red js_accept" hl>确认</b></div>
+<div class="addressdialog hide js_dialog" style="display: none">
+    <div class="prizecon">
+        <div class="hd">请正确填写以下信息</div>
+        <ul class="info">
+            <li><input class="js_receiver" placeholder="请输入收件人" /></li>
+            <li><input class="js_phone" placeholder="请输入电话" /></li>
+            <li><input class="js_zip" placeholder="请输入邮编" /></li>
+            <li><input class="js_address" placeholder="请输入地址" /></li>
+        </ul>
+        <div class="action"><b class="btn js_accept" hl>确认</b></div>
+    </div>
 </div>
+<div class="share"></div>

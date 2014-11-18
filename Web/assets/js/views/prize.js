@@ -1,7 +1,8 @@
-﻿define(['$','sl/sl','app','sl/widget/loading','util/base64'],function(require,exports,module) {
+﻿define(['$','sl/sl','app','util','sl/widget/loading','util/base64'],function(require,exports,module) {
     var $=require('$'),
         sl=require('sl/sl'),
         base64=require('util/base64'),
+        util=require('util'),
         app=require('app'),
         Loading=require('sl/widget/loading');
 
@@ -12,12 +13,22 @@
                 this.$('.js_dialog,.js_mask').show().removeClass('hide');
                 this.$('.js_dialog').css({ top: Math.max((window.innerHeight-this.$('.js_dialog').height())/2,0),marginTop: 0 });
             },
+            'tap .js_close': function() {
+                this.$('.js_dialog,.js_mask').addClass('hide').one($.fx.transitionEnd,function() {
+                    this.style.display='none';
+                });
+            },
+            'tap .share': function(e) {
+                $(e.currentTarget).hide();
+            },
+            'tap .js_share': function() {
+                this.$('.share').show();
+            },
             'tap .js_accept': function() {
                 var that=this,
-                    code=base64.decode(that.route.data.data).split('|'),
                     data={
-                        userId: code[0],
-                        prizeId: code[1],
+                        userId: util.store('userid'),
+                        prizeId: util.store('prize').PrizeID,
                         receiver: that.$('.js_receiver').val(),
                         phone: that.$('.js_phone').val(),
                         zip: that.$('.js_zip').val(),
@@ -66,7 +77,7 @@
         },
         onCreate: function() {
             var that=this,
-                data=sl.common.prize||JSON.parse(localStorage.getItem('prize'));
+                data=util.store('prize');
 
             that.$('.js_text').html(data.PrizeName);
             that.$('.js_img').attr('src',data.Picture);

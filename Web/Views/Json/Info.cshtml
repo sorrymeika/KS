@@ -1,0 +1,22 @@
+﻿@using SL.Util
+@using SL.Data
+@{
+    
+    RequestUtil req = new RequestUtil();
+    int userid = req.Int("userid", false, "请传入用户编号");
+    int city = req.Int("city", false, "请填写省市");
+    int gender = req.Int("gender", false, "请填写性别", @"\d", "请填写正确的性别");
+    DateTime birthday = req.DateTime("birthday", false, "请填写生日");
+    string address = req.String("address", false, "请填写地址");
+
+    if (req.HasError)
+    {
+        Json.Write(new { success = false, msg = req.FirstError, errors = req.GetErrors() }, Output);
+        return;
+    }
+
+    SQL.Execute("update BCUSTOMER set CTM_CTY_ID=@p1,CTM_GND_ID=@p2,CTM_BIRTH_DT=@p3,CTM_ADDRESS=@p4 where CTM_ID=@p0", userid, city, gender, birthday, address);
+
+    Json.Write(new { success = true }, Output);
+    return;
+}
