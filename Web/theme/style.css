@@ -17,7 +17,7 @@ body { background: url(images/bg.jpg) center top no-repeat; }
 
 .click { width: 100%; height: 100%; }
 
-.dialog { position: absolute; left: 50%; width: 320px; margin-left: -200px; top: 200px; padding: 40px; display\: none; }
+.dialog { position: absolute; left: 50%; width: 320px; margin-left: -200px; top: 200px; padding: 40px; display: none; }
 .dialog .close { position: absolute;right: 0; top: 0; display: inline-block; width: 30px; height: 30px; line-height: 30px; text-align: center; color:#cc0000; border-bottom: 1px solid #ddd; border-left: 1px solid #ddd; }
 .dialog .hd { text-align: center; font-weight: bold; font-size: 18px; }
 
