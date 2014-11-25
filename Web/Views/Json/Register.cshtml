@@ -29,7 +29,7 @@
             //db.Execute("update SSequence set SEQ_NUM=SEQ_NUM+SEQ_STEP where SEQ_TABLE='BCUSTOMER'");
 
             var now = DateTime.Now;
-            db.Execute("insert into BCUSTOMER (CTM_EMAIL,CTM_NAME,CTM_CREATION_DT,CTM_MOBILE) values (@p0,@p1,@p2,@p3)", out userid, email, name, now, mobile);
+            db.Execute("insert into BCUSTOMER (CTM_EMAIL,CTM_NAME,CTM_CREATION_DT,CTM_MOBILE,CTM_DTS_ID) values (@p0,@p1,@p2,@p3,31)", out userid, email, name, now, mobile);
             db.Execute("insert into BUSERLOGIN (USL_CTM_ID,USL_REG_DT,USL_LOGINNAME) values (@p0,@p1,@p2)", userid, now, mobile);
         }
     }

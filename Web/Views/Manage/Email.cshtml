@@ -78,7 +78,7 @@
 
         var data = SQL.Query("select Name as 用户姓名,Email as 用户邮箱,CreationTime as 注册时间 from Users where " + where + " order by UserID desc", parameters.ToArray());
 
-        ExcelUtil.doExport(data, Server.MapPath("~/upload/user.xls"));
+        ExcelUtil.Export(data, Server.MapPath("~/upload/user.xls"));
 
         Response.Redirect(Url.Content("~/upload/user.xls"));
         return;

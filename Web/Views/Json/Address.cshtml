@@ -18,7 +18,7 @@
 
     var user = SQL.QuerySingle("select CTM_PRZ_ID from BCUSTOMER where CTM_ID=@p0", userid);
 
-    if (user == null || user.PrizeID != prizeid)
+    if (user == null || user.CTM_PRZ_ID != prizeid)
     {
         Json.Write(new { success = false, msg = "您还未参与该活动" }, Output);
         return;

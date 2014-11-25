@@ -15,6 +15,8 @@ a:hover { color: #999; }
 
 body { background: url(images/bg.jpg) center top no-repeat; }
 
+.logo { position: absolute; top: 0; left: 50%; background:url(images/logo.png) no-repeat; margin-left: -125px; width: 250px; height: 200px;}
+.mask {width: 100%; height: 100%; position: absolute; top: 0; left: 0; background-color:#000; opacity: .5; filter: alpha(opacity=50%);}
 .click { width: 100%; height: 100%; }
 
 .dialog { position: absolute; left: 50%; width: 320px; margin-left: -200px; top: 200px; padding: 40px; display: none; }
@@ -36,9 +38,9 @@ body { background: url(images/bg.jpg) center top no-repeat; }
 .info { margin-left: 20px; margin-top: 10px; }
 .info li { height: 40px; font-size: 12px; display:-webkit-box; padding-right: 20px; }
 .info li span { display: block; padding-top: 10px; width: 60px; }
-.info li .checkbox { display: block; padding: 10px;display: inline-block; }
-.info li .checkbox i { width: 15px; height: 15px; display: inline-block; border: 1px solid #333; border-radius: 9px; vertical-align: -3px; margin-right: 3px; }
-.info li .checkbox.checked i b { display: inline-block; content: ''; width: 13px; height: 13px; border-radius: 7px; border: 1px solid #fff; background:#333; }
+.info li .checkbox { display: block; padding: 10px;display: inline-block; overflow: hidden; }
+.info li .checkbox i { width: 15px; height: 15px; display: inline-block; border: 1px solid #333; border-radius: 9px; vertical-align: -3px; margin-right: 3px;overflow: hidden; }
+.info li .checkbox.checked i b { display: inline-block; content: ''; width: 13px; height: 13px; border-radius: 7px; border: 1px solid #fff; background:#333;overflow: hidden; }
 .info li input,.info li select { height: 25px;  display: block; -webkit-box-flex: 1; }
 .info .action { text-align: center; }
 
@@ -55,10 +57,12 @@ body { background: url(images/bg.jpg) center top no-repeat; }
 .prizewrap {background:url(images/prizebg.png) no-repeat; width: 618px; height:618px; padding: 0; margin-left: -309px; top: 50px; }
 .prizebg img {width:173px; margin-top: 4px;}
 .prizecon {  text-align: center; border-radius: 6px; padding: 12px 5px; padding-top: 100px; }
-.prizecon b {  display: block;color:#dd0f06; font-size: 18px; }
+.prizecon b {  display: block;color:#dd0f06; font-size: 22px; font-weight: bold; }
 .prizecon b.btn {  color:#fff; display: inline-block; padding: 0 20px; font-size: 14px; margin-top: 10px; }
-.prizecon .win{ color:#dd0f06; font-size: 16px; text-align: center; }
+.prizecon .win{ color:#dd0f06; font-size: 16px; text-align: center; padding-top: 4px; font-size: 18px;}
 .prizecon p { color:#dd0f06; margin: 10px auto; text-decoration: underline; }
 
 .infodialog { border:1px solid #ddd; }
 .dlg_address .prizecon { padding-top: 0;}
+
+.sorryft { padding-top: 40px; border-top: 1px dotted #333; width: 230px; margin: 100px auto 0 auto; color:#dd0f06; }

@@ -1,3 +1,12 @@
 ﻿.clearfix { *zoom: 1; }
 .nav li,.footer .ftnav li,.ucnav li,.page_list .num_list li,.avatar_bd .actions .btn,.btn,.btn_dlg_l,.btn_dlg_r,.refresh p { *display: inline;*zoom: 1; }
 .listbox ul li { *width: 24.9%;}
+
+.form li input { display: inline-block;  }
+.form li span {display: inline-block;vertical-align: -9px;}
+.info li span {display: inline-block; }
+.info li input { display: inline-block;  }
+.info li select { display: inline-block;  }
+
+.info li .checkbox i { _vertical-align:12px;}
+.info li .checkbox.checked i { _vertical-align:-3px;}
